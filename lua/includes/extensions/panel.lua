@@ -1,0 +1,23 @@
+--========== Copyleft © 2013, Team Sandbox, Some rights reserved. ===========--
+--
+-- Purpose: Extends the panel type.
+--
+--===========================================================================--
+
+local type = type
+
+function ToPanel( pPanel )
+  if ( not pPanel or type( pPanel ) ~= "Panel" ) then
+    return INVALID_PANEL;
+  end
+
+  local success, hPanel = pcall( _R.Panel.GetVPanel, pPanel )
+  if ( not success ) then
+    hPanel = INVALID_PANEL
+  end
+if _DEBUG then
+  assert( hPanel ~= INVALID_PANEL );
+end
+
+  return hPanel;
+end

@@ -1,0 +1,153 @@
+"GameInfo"
+{
+	game	"hl2box"
+	icon	"icon_hl2"
+	title	"HALF+LIFE'"
+	title2	"Half-Life 2 Box"
+	nomodels 0
+	nohimodel 1
+	nocrosshair 1
+	hidden_maps
+	{
+		"test_speakers"		1
+		"test_hardware"		1
+	}
+	developer "Planimeter"
+	developer_url "https://github.com/Planimeter/hl2sb"
+	manual "https://github.com/Planimeter/hl2sb"
+
+
+FileSystem
+	{
+		SteamAppId				320
+
+		SearchPaths
+		{
+
+			// First, mount all user customizations.  This will search for VPKs and subfolders
+			// and mount them in alphabetical order.  The easiest way to distribute a mod is to
+			// pack up the custom content into a VPK.  To "install" a mod, just drop it in this
+			// folder.
+			//
+			// Note that this folder is scanned only when the game is booted.
+			game+mod			hl2box/custom/*
+			game+mod            hl2box/addons/*
+
+			// We search VPK files before ordinary folders, because most files will be found in
+			// VPK and we can avoid making thousands of file system calls to attempt to open files
+			// in folders where they don't exist.  (Searching a VPK is much faster than making an operating
+			// system call.)
+
+			game+mod 			hl2box
+
+			game				|all_source_engine_paths|hl2/hl2_textures.vpk
+			game				|all_source_engine_paths|hl2/hl2_sound_vo_english.vpk
+			game				|all_source_engine_paths|hl2/hl2_sound_misc.vpk
+			game				|all_source_engine_paths|hl2/hl2_misc.vpk
+			game 				|all_source_engine_paths|hl2/hl2_pak.vpk
+			// HL2SB: hl2mp VPKs unmounted 2026-09-28 - content now provided by the
+			// hl2 + garrysmod mounts below; the hl2mp-only MENU materials the fork's
+			// GameUI needs (materials/vgui/gfx/vgui/hl2mp_logo|solid_background|
+			// trans_background|round_corner_*) were extracted into hl2sb loose, and
+			// the 3 loose .sw.vtx that only existed here are kept.  Restore these
+			// two lines if an hl2mp-only asset turns up missing.
+			// game				|all_source_engine_paths|hl2mp/hl2mp_english.vpk
+			// game 				|all_source_engine_paths|hl2mp/hl2mp_pak.vpk
+			// GMod's fallback content: the CS:S / HL2 assets GMod itself relies on
+			// (154 weapon .wav incl. the CS:S name set, ~8.2k materials, 373 models).
+			// GMod SWEPs and addons reference those names directly, so without this
+			// mount their gun/explosion sounds silently fail to load ("Failed to load
+			// sound weapons/deagle/de_deploy.wav") and their models render pink.
+			// Mounted as "game" (not "mod") so it never joins the MOD search path
+			// that the Lua loader enumerates, and placed after the hl2/hl2mp VPKs so
+			// first-party content keeps priority.
+			game				|all_source_engine_paths|garrysmod/fallbacks_dir.vpk
+			// GMod gamedepot CS:S content pack (GMod auto-mounts it via mountdepots.txt;
+			// no CS:S purchase needed). CS-themed workshop maps (gm_an_untold_story
+			// etc) reference materials/de_*, materials/cs_* and models/props/cs_*|de_*.
+			game				|all_source_engine_paths|sourceengine/content_cstrike_dir.vpk
+			// Additional HL2 and episodic resources used by GMod weapons and entities.
+			game				|all_source_engine_paths|sourceengine/content_hl2_dir.vpk
+			platform			|all_source_engine_paths|platform/platform_misc.vpk
+
+			// GMod's own content: models (9.5k), materials (3.8k - including the
+			// whole materials/entities/*.png spawnmenu thumbnail set), maps,
+			// shaders, scripts and sounds.  This is the content this fork's
+			// SWEPs/SENTs reference directly and the content SMenu draws its
+			// thumbnails from.
+			//
+			// TWO things matter about this line, and both were wrong before:
+			//
+			// 1. "game+mod", NOT "mod".  A search path is only consulted for the
+			//    pathID it was registered with: CBaseFileSystem::FilterByPathID
+			//    skips every path whose GetPathID() differs from the query's
+			//    (filesystem/basefilesystem.h:914-942).  The engine's content
+			//    systems ask for materials, models and sounds on the GAME path,
+			//    and FileExists() defaults to GAME as well - so registered as
+			//    "mod" alone this VPK is invisible to all of them.  That is
+			//    exactly the "GMod assets are missing / the VPK is not mounted
+			//    right" the user reported.  "game+mod" is also the type GMod's
+			//    own gameinfo.txt uses for garrysmod.vpk.
+			//
+			// 2. LAST, after the hl2 VPKs and our own loose hl2sb content
+			//    (2026-09-28 user directive: hl2 first, gmod last).  GMod's VPK
+			//    collides with 13 loose fork files - including
+			//    scripts/hudlayout.res, scripts/hudanimations.txt,
+			//    scripts/mod_textures.txt, scripts/game_sounds_manifest.txt,
+			//    scripts/surfaceproperties.txt and scripts/propdata*.txt.  Those
+			//    are read at startup, and earlier entries in this file WIN
+			//    (paths are appended to the search list and searched from the
+			//    head), so the VPK has to sit after them or GMod's HUD layout /
+			//    HUD textures / surface properties would replace the fork's.
+			//    NOTE: loose gmod-extracted copies that differed from the hl2
+			//    version were restored into hl2sb for the same reason (179
+			//    files, see hl2sb_clear/_moved_manifest.txt).
+			//
+			// It cannot leak GMod's Lua into our Lua loader: the VPK holds 0
+			// lua/, 0 gamemodes/ and 0 addons/ entries (verified against its
+			// tree) - lua/ lives in the loose directory, which stays unmounted.
+			game+mod			|all_source_engine_paths|garrysmod/garrysmod_dir.vpk
+
+			// Now search loose files.  We'll set the directory containing the gameinfo.txt file
+			// as the first "mod" search path (after any user customizations).  This is also the one
+			// that's used when writing to the "mod" path.
+			mod+mod_write+default_write_path		|gameinfo_path|.
+
+			// Add the hl2sb directory as a game search path.  This is also where where writes
+			// to the "game" path go.
+			game+game_write		hl2box
+
+			// Where the game's binaries are
+			gamebin				hl2box/bin
+
+			// Last, mount in shared HL2 loose files
+			game				|all_source_engine_paths|hl2
+			// HL2SB: loose hl2mp dir unmounted 2026-09-28 together with the hl2mp
+			// VPK lines above - content is provided by hl2 + garrysmod mounts.
+			// game 				|all_source_engine_paths|hl2mp
+			game 				|all_source_engine_paths|hl2box
+
+// HL2SB: the whole garrysmod directory is deliberately NOT mounted - that would make
+// the Lua loader enumerate GMod's own lua/ tree (thousands of files).  Only the VPKs
+// above are mounted: they carry materials/models/sounds/particles, and GMod's Lua is
+// not inside its VPKs.  (garrysmod_dir.vpk itself moved above the hl2 VPK block,
+// 2026-09-28 - see the comment there.)
+ 			game 				|all_source_engine_paths|garrysmod
+			platform			|all_source_engine_paths|platform
+
+			// Random files downloaded from gameservers go into a seperate directory, so
+			// that it's easy to keep those files segregated from the official game files
+			// or customizations intentially installed by the user.
+			//
+			// This directory is searched LAST.  If you visit a server and download
+			// a custom model, etc, we don't want that file to override the default
+			// game file indefinitely (after you have left the server).  Servers CAN have
+			// custom content that overrides the default game files, it just needs to be
+			// packed up in the .bsp file so that it will be mounted as a map search pack.
+			// The map search pack is mounted at the top of the search path list,
+			// but only while you are connected that server and on that map.
+			
+			game+download	hl2box/download
+		}
+	}
+}

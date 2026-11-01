@@ -1,0 +1,41 @@
+# Installed addons, binaries, and user content
+/addons/
+/custom/
+/bin/
+**/bin/
+/data/
+/cache/
+/download/
+/downloadlists/
+/dumps/
+/dumps_wer/
+/screenshots/
+/settings/spawnlist/
+/maps/graphs/
+/materials/spawnicons/
+
+# Runtime configuration and generated files
+/cfg/config.cfg
+/cfg/listenserver.cfg
+/cfg/settings.scr
+/cfg/server_blacklist.txt
+/settings/users.txt
+/addons_disabled.txt
+/ServerConfig.vdf
+*.log
+*.db
+*.tmp
+*.bak
+*.dmp
+*.pdb
+*.dll
+*.exe
+*.pyc
+*.cache
+
+# Local tests and tools
+/lua/tests/
+**/*_test.lua
+**/*probe*.lua
+**/*diag*.lua
+__pycache__/
