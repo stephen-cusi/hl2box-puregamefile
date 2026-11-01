@@ -26,25 +26,6 @@
 -- ===========================================================================
 
 -- ===========================================================================
--- Sound( path )  (GMod global, both realms)
---
--- GMod's Sound() returns a sound object that EmitSound/PlaySound accept.  HL2SB
--- has no such global and its EmitSound takes the PATH STRING directly, so a
--- stock GMod SWEP doing `self:EmitSound( Sound( self.Primary.Sound ) )` died on
--- "attempt to call a nil value (global 'Sound')" -- a red error in the console
--- that also skipped everything after it in that function (pist_weagon's
--- SetNextPrimaryFire, so its fire rate was never armed).
---
--- Returning the path is exactly what AGENTS.md 9.6 tells hand-ported scripts to
--- do by hand; providing the global means the pristine addon works unmodified.
--- ===========================================================================
-if ( Sound == nil ) then
-	function Sound( path )
-		return path
-	end
-end
-
--- ===========================================================================
 -- HL2SB: the ACT_* globals used to be hand-copied here from the Valve SDK
 -- numbering (ACT_HL2MP_IDLE = 988 ...).  That was WRONG for this engine: models
 -- resolve activities BY NAME at load (animation.cpp:151,
@@ -80,75 +61,17 @@ PLAYER_RELOAD	= 8
 PLAYER_START_AIMING	= 9
 PLAYER_LEAVE_AIMING	= 10
 
--- HL2SB GMod SWEP compat: stock SWEPs call Sound("...") (identity in GMod's
--- C binding) and AddCSLuaFile (HL2SB ships all Lua to both sides already).
-Sound = Sound or function( s ) return s end
 AddCSLuaFile = AddCSLuaFile or function( ... ) return true end
 
--- GMod: Model("path") precaches the model on the server and returns the path
--- (identity on the client).  gmod_camera and many workshop SWEPs wrap their
--- ViewModel/WorldModel in Model(...), which used to die with
--- "attempt to call global 'Model' (a nil value)".
-Model = Model or function( s )
-	if ( not _CLIENT and util and util.PrecacheModel ) then
-		util.PrecacheModel( s )
-	end
-	return s
-end
-
 -- ===========================================================================
--- HL2SB (2026-10-08): base-gamemode round.  Four small GMod globals the
--- ported base files (and stock addons) expect.
+-- HL2SB (2026-10-08): base-gamemode globals used by the ported base files.
 --
 --   Format         - string.format alias (GMod extensions/string.lua spells
 --                    it out with a format cache; a straight alias answers
 --                    the same contract).
---   MsgAll         - GMod prints to every client's console over a net
---                    channel; this fork has no such channel, so this lands
---                    on the server console only (same text, narrower
---                    audience) until a net path exists.
---   Entity( index )- ents.GetByIndex alias (GMod global).
 --   ents.FindInBox - the engine binding is spelled Entities.GetInBox here.
 --
--- WARNING: this block MUST sit above the `if ( not _CLIENT )` section below -
--- that section ends the server's pass with a bare `return`, and an earlier
--- copy of this block at the end of the file was therefore client-only: the
--- server's PlayerDeath hit "attempt to call a nil value (global 'MsgAll')"
--- on the first suicide of a test session (2026-10-08).  Same trap the two
--- blocks above and below already document.
 -- ===========================================================================
-if ( rawget( _G, "Format" ) == nil ) then
-	function Format( str, ... )
-		return string.format( str, ... )
-	end
-end
-
-if ( rawget( _G, "MsgAll" ) == nil ) then
-	function MsgAll( ... )
-		Msg( ... )
-	end
-end
-
-if ( rawget( _G, "Entity" ) == nil and ents ~= nil and ents.GetByIndex ~= nil ) then
-	function Entity( index )
-		return ents.GetByIndex( index )
-	end
-end
-
-if ( ents ~= nil and ents.FindInBox == nil and Entities ~= nil and Entities.GetInBox ~= nil ) then
-	function ents.FindInBox( mins, maxs, filter )
-		-- Entities.GetInBox's third argument is a partition flag mask, not a
-		-- GMod filter.  Pass numeric masks through; table/function filters
-		-- have no engine counterpart yet, so the call runs unfiltered there
-		-- (the base gamemode's spawn-point search calls this two-argument
-		-- form only).
-		if ( type( filter ) == "number" ) then
-			return Entities.GetInBox( mins, maxs, filter )
-		end
-		return Entities.GetInBox( mins, maxs )
-	end
-end
-
 -- ===========================================================================
 -- HL2SB: server-realm stand-ins for two client-only APIs that the ported GMod
 -- libraries touch at LOAD time.
@@ -192,74 +115,16 @@ if ( SERVER ) then
 end
 
 if ( not _CLIENT ) then
-	-- Server side has no surface / skin; still bridge time + convar.
-	gpGlobals = gpGlobals or _G.gpGlobals
-	CurTime  = CurTime  or function() return gpGlobals.curtime() end
-	RealTime = RealTime or function() return gpGlobals.realtime() end
-
-	CreateConVar = CreateConVar or function( name, def, flags, help, min, max )
-		-- HL2SB: GMod passes FLAGS AS A TABLE, and the engine ConVar takes a
-		-- number plus a DIFFERENT positional layout:
-		--     GMod    ( name, default, flags, helptext, min, max )
-		--     engine  ( name, default, flags, help, bMin, fMin, bMax, fMax )
-		-- Passing GMod's min/max straight through put them in boolean slots, and
-		-- a flags table produced
-		--     gmod_globals.lua:115: bad argument #3 to 'ConVar' (number expected, got table)
-		-- which is exactly what killed modules/constraint.lua (52 KB).
-		local iFlags = flags
-		if ( type( flags ) == "table" ) then
-			iFlags = 0
-			for _, flag in ipairs( flags ) do
-				iFlags = bit.bor( iFlags, flag )
-			end
+	if ( _GAMEUI ) then
+		GetConVar = GetConVar or function( name ) return ConVar( name ) end
+		GetConVarNumber = GetConVarNumber or function( name )
+			local c = ConVar( name )
+			return c and c:GetFloat() or 0
 		end
-
-		return ConVar( name, def, iFlags or 0, help, min ~= nil, min or 0, max ~= nil, max or 0 )
-	end
-
-	GetConVar = GetConVar or function( name )
-		return ConVar( name )
-	end
-
-	GetConVarNumber = GetConVarNumber or function( name )
-		local c = ConVar( name )
-		return c and c:GetFloat() or 0
-	end
-
-	GetConVarString = GetConVarString or function( name )
-		local c = ConVar( name )
-		return c and c:GetString() or ""
-	end
-
-	GetConVarBool = GetConVarBool or function( name )
-		local c = ConVar( name )
-		return c and c:GetBool() or false
-	end
-
-	-- GMod: ConVarExists( name ) -> boolean.
-	--
-	-- WARNING: cod_c4 gates the creation of every one of its convars on it:
-	--     addons/cod_c4/lua/entities/cod-c4/shared.lua:19  if !ConVarExists( ... ) then CreateConVar(...)
-	--     addons/cod_c4/lua/entities/cod-c4/shared.lua:46  if !ConVarExists( "C4_RedLight" ) then ...
-	-- As a nil global BOTH realms failed to load that file entirely
-	-- ("[Lua] FAILED ... shared.lua:19: attempt to call a nil value (global 'ConVarExists')",
-	-- ds_debug.log:18941): the six C4_* convars were never created, the
-	-- net.Receive( "C4_Convars_Change" ) handler was never registered and the client never
-	-- built its convar-change callbacks or the tool-menu panel.
-	ConVarExists = ConVarExists or function( name )
-		return ConVar( name ) ~= nil
-	end
-
-	-- GMod's ServerLog( text ): a server-only global that writes the text to
-	-- the server log file, echoing "ServerLog: <text>" to the console when
-	-- sv_logecho is nonzero (reference behavior confirmed 2026-10-16).
-	-- This engine exposes no log-file writer to Lua, so the shim
-	-- echoes through Msg -- which lands in the console AND hl2sb_lua.log, the
-	-- same visible channel.  Callers are the rate-limit branches of the GMod
-	-- property files (lua/autorun/properties/statue.lua:86,
-	-- kinect_controller.lua:54), so volume is negligible.
-	ServerLog = ServerLog or function( text )
-		Msg( tostring( text ) )
+		GetConVarString = GetConVarString or function( name )
+			local c = ConVar( name )
+			return c and c:GetString() or ""
+		end
 	end
 
 	return
@@ -268,33 +133,6 @@ end
 -- ===========================================================================
 -- Client side
 -- ===========================================================================
-
-local gpGlobals = gpGlobals
-
--- Time
-CurTime  = CurTime  or function() return gpGlobals.curtime() end
-RealTime = RealTime or function() return gpGlobals.realtime() end
-FrameTime = FrameTime or function() return gpGlobals.frametime() end
--- HL2SB GMod compat (2026-09-25): SysTime() - wiki: "highly accurate time in
--- seconds since start up, ideal for benchmarking... updated any time the
--- function is called" (First Person Body timestamps its shadow renders with
--- it).  RealTime() is the engine's high-resolution wall clock, which is the
--- same contract; it was left undefined here until now.
-SysTime = SysTime or function() return RealTime() end
--- HL2SB GMod compat (2026-09-24): FrameNumber() - GMod global, the engine
--- frame counter as a float (First Person Body's RenderScene hook counts
--- frames with it).  gpGlobals.framecount is the same counter.
-FrameNumber = FrameNumber or function() return gpGlobals.framecount() end
-
--- Screen size
-ScrW = ScrW or function()
-	local w = surface.GetScreenSize()
-	return w or 0
-end
-ScrH = ScrH or function()
-	local _, h = surface.GetScreenSize()
-	return h or 0
-end
 
 -- HL2SB: GMod's ScreenScale family.  These are ENGINE globals in GMod (C++),
 -- not util.lua helpers -- GMod's own lua/includes/util.lua (ours, byte for
@@ -306,155 +144,33 @@ end
 -- Without them that file fails to load completely, which shows up as exactly
 -- one [Lua] FAILED line -- that is how the undo notification vanished.
 --
--- GMod semantics: ScreenScale and ScreenScaleH scale by height against the
--- 480-unit baseline, ScreenScaleW scales by width against 640.
-ScreenScale = ScreenScale or function( size )
-	return size * ( ScrH() / 480 )
-end
-
-ScreenScaleH = ScreenScaleH or function( size )
-	return size * ( ScrH() / 480 )
+-- In the game client, the original client globals provide ScreenScale and
+-- ScreenScaleH. The menu state uses its own fallback.
+if ( _GAMEUI ) then
+	ScreenScale = ScreenScale or function( size ) return size * ( ScrW() / 640 ) end
+	ScreenScaleH = ScreenScaleH or function( size ) return size * ( ScrH() / 480 ) end
 end
 
 ScreenScaleW = ScreenScaleW or function( size )
 	return size * ( ScrW() / 640 )
 end
 
--- ConVar access (see above for the shape)
-CreateConVar = CreateConVar or function( name, def, flags, help, min, max )
-		-- HL2SB: GMod passes FLAGS AS A TABLE, and the engine ConVar takes a
-		-- number plus a DIFFERENT positional layout:
-		--     GMod    ( name, default, flags, helptext, min, max )
-		--     engine  ( name, default, flags, help, bMin, fMin, bMax, fMax )
-		-- Passing GMod's min/max straight through put them in boolean slots, and
-		-- a flags table produced
-		--     gmod_globals.lua:115: bad argument #3 to 'ConVar' (number expected, got table)
-		-- which is exactly what killed modules/constraint.lua (52 KB).
-		local iFlags = flags
-		if ( type( flags ) == "table" ) then
-			iFlags = 0
-			for _, flag in ipairs( flags ) do
-				iFlags = bit.bor( iFlags, flag )
-			end
-		end
-
-		return ConVar( name, def, iFlags or 0, help, min ~= nil, min or 0, max ~= nil, max or 0 )
+if ( _GAMEUI ) then
+	GetConVar = GetConVar or function( name ) return ConVar( name ) end
+	GetConVarNumber = GetConVarNumber or function( name )
+		local c = ConVar( name )
+		return c and c:GetFloat() or 0
 	end
-
-GetConVar = GetConVar or function( name )
-	return ConVar( name )
+	GetConVarString = GetConVarString or function( name )
+		local c = ConVar( name )
+		return c and c:GetString() or ""
+	end
 end
-
-GetConVarNumber = GetConVarNumber or function( name )
-	local c = ConVar( name )
-	return c and c:GetFloat() or 0
-end
-
-GetConVarString = GetConVarString or function( name )
-	local c = ConVar( name )
-	return c and c:GetString() or ""
-end
-
-GetConVarBool = GetConVarBool or function( name )
-	local c = ConVar( name )
-	return c and c:GetBool() or false
-end
-
--- GMod: ConVarExists( name ) -> boolean.  Client half - see the server-side note above:
--- cod_c4 checks it before CreateClientConVar (entities/cod-c4/shared.lua:46), so without it
--- the client half of that file failed to load too (ds_debug.log:19736).
-ConVarExists = ConVarExists or function( name )
-	return ConVar( name ) ~= nil
-end
-
--- ===========================================================================
--- HL2SB: GMod's SysTime() and RealFrameTime()
---
--- lua/includes/notification.lua uses SysTime() for every notice lifetime --
--- Panel.StartTime = SysTime() (line 83), the timeleft/velocity maths that drives
--- the whole slide-in animation, and KillSelf's StartTime + Length test -- and
--- RealFrameTime() for the friction term and the spring step.
---
--- Neither existed in this fork, so the GMod undo notice died at
---
---     notification.lua:83: attempt to call a nil value (global 'SysTime')
---
--- RealTime() and FrameTime() (defined above, on gpGlobals) are the same
--- quantities here.
---
--- HL2SB: the SysTime alias that used to live here is GONE -- the ENGINE provides
--- SysTime() now (luaopen_UTIL_shared, Plat_FloatTime, both realms).  Do not put
--- it back:
---
---     SysTime = SysTime or RealTime        -- RealTime is CLIENT only
---
--- evaluated to nil on the SERVER, so the server had no clock at all, which
--- silently disabled the undo de-duplication in lua/includes/modules/undo.lua and
--- let the twice-dispatched "undo" run twice -- deleting entities the first pass
--- had already removed and crashing in server.dll (execute access violation).
---
--- (lua/includes/modules/gmod_compatibility/sh_init.lua:260 also assigns
--- "SysTime = Engines.GetSystemTime"; that file is not loaded -- we only include
--- its sh_enumerations.lua -- but do not start including it, or it would shadow
--- the engine global.)
--- ===========================================================================
-RealFrameTime = RealFrameTime or FrameTime
 
 -- NOTE: the server-realm render/net.Receive stand-ins are NOT here.  This file
 -- ends the server's pass with the bare `return` above (inside the
 -- `if ( not _CLIENT )` block), so anything after that point never runs on the
 -- server.  They live near the top of the file instead.
-
--- ===========================================================================
--- HL2SB: input.IsKeyTrapping()  (GMod global on the input library)
---
--- gamemodes/base/gamemode/cl_spawnmenu.lua:15 is
---
---     concommand.Add( "-menu", function()
---         if ( input.IsKeyTrapping() ) then return end
---         hook.Run( "OnSpawnMenuClose" )
---     end, ... )
---
--- (and lua/vgui/dbinder.lua:81 calls it too).  This fork's vgui IInput has no
--- IsKeyTrapping at all (public/vgui/IInput.h has no such virtual -- GMod added
--- it to its fork of vgui2), so it cannot be bound; the only definition anywhere
--- was lua/includes/modules/gmod_compatibility/sh_init.lua:1298, which is inert
--- behind GMOD_COMPATIBILITY = false.
---
--- GMod's semantics: true while the console or a text entry is trapping the
--- keyboard.  input.GetFocus() IS bound (public/lua/vgui/LIInput.cpp:312) and
--- returns the panel holding keyboard focus, which is the same signal, so test
--- the focused panel's class.  It only needs to be conservative: returning true
--- keeps a text entry from being closed under the user's fingers.
---
--- HL2SB (2026-09-17): the engine binding for input.IsKeyTrapping now exists too
--- (public/lua/vgui/LIInput.cpp, added for lua/vgui/DBinder.lua), and it reports the
--- input.StartKeyTrapping() trap mode.  GMod's function is the UNION of the two, so
--- both are consulted below - the binding alone would let the "-menu" concommand
--- close the spawn menu while a text entry is being typed into.
--- ===========================================================================
-if ( input ~= nil ) then
-
-	local EngineIsKeyTrapping = input.IsKeyTrapping
-
-	function input.IsKeyTrapping()
-
-		if ( EngineIsKeyTrapping ~= nil and EngineIsKeyTrapping() ) then return true end
-
-		if ( input.GetFocus == nil ) then return false end
-
-		local pnl = input.GetFocus()
-		if ( not IsValid( pnl ) ) then return false end
-
-		if ( pnl.GetClassName == nil ) then return false end
-
-		local class = pnl:GetClassName()
-
-		return class == "TextEntry" or class == "EditablePanel"
-
-	end
-
-end
 
 -- ===========================================================================
 -- HL2SB: the `achievements` table (GMod global, client)
@@ -498,57 +214,7 @@ if ( achievements == nil ) then
 	}
 
 end
--- ===========================================================================
--- HL2SB: gui.MouseX / gui.MouseY  and  game.GetWorld()   (2026-09-13)
---
--- Both came out of tools/globals_audit.py, which diffs every bare global call
--- and every library.Member( in the spawnmenu path against what this fork binds.
--- Both are on the Derma surface the spawnmenu builds with.
---
--- gui.MouseX / gui.MouseY
---   lua/vgui/dframe.lua uses them for window dragging (11 + 17 sites, e.g.
---   :139,:140,:212) and lua/includes/extensions/client/panel/dragdrop.lua:216,262
---   and selections.lua:79 use them for spawn-icon drag & drop.  This fork's `gui`
---   library binds only IsGameUIVisible / ScreenToVector / ... -- no MouseX/MouseY.
---   input.GetCursorPos() (public/lua/vgui/LIInput.cpp, bound in round 2) is the
---   same cursor the engine's ISurface reads, so these are exact.
---
--- game.GetWorld()
---   gamemodes/sandbox/gamemode/spawnmenu/toolpanel.lua:148 builds its CanTool
---   argument with it while the tool tabs are populated:
---       local fakeTrace = { Entity = game.GetWorld(), Hit = false }
---   so without it UpdateToolDisabledStatus throws and the whole tool panel fails
---   to build.  lua/includes/modules/constraint.lua and duplicator.lua use it too.
---   Implemented through ents.FindByClass (extensions/gmod_compat.lua:384, which
---   wraps the working gEntList.FindEntityByClassname) rather than guessing at a
---   world accessor: it returns the real worldspawn entity, or nil if the entity
---   list cannot answer.
--- ===========================================================================
 if ( CLIENT and _G.gui ~= nil and _G.input ~= nil and input.GetCursorPos ~= nil ) then
-
-	if ( gui.MouseX == nil ) then
-		function gui.MouseX()
-			local x = input.GetCursorPos()
-			return x or 0
-		end
-	end
-
-	if ( gui.MouseY == nil ) then
-		function gui.MouseY()
-			local _, y = input.GetCursorPos()
-			return y or 0
-		end
-	end
-
-	-- HL2SB (2026-10-20 mc_swep audit B5): gui.SetMousePos( x, y ) -- the
-	-- reference binds it right beside MouseX/MouseY (client realm) and the
-	-- minecraft swep's model menu parks/restores the cursor with it.  Same
-	-- cursor, same engine input binding the two getters above read.
-	if ( gui.SetMousePos == nil and input.SetCursorPos ~= nil ) then
-		function gui.SetMousePos( x, y )
-			input.SetCursorPos( x, y )
-		end
-	end
 
 	-- HL2SB (2026-10-20 mc_swep audit B5): GMod's clipboard writer is the bare
 	-- global SetClipboardText( str ) (client realm); this fork's implementation
@@ -559,44 +225,6 @@ if ( CLIENT and _G.gui ~= nil and _G.input ~= nil and input.GetCursorPos ~= nil 
 		function _G.SetClipboardText( strText )
 			return _G.system.SetClipboardText( strText )
 		end
-	end
-
-	-- HL2SB (2026-10-16): gui.ScreenToVector( x, y ) - the screen point's world
-	-- direction.  GMod implements it in C++; this engine's gui library has no
-	-- binding (the C-menu port's OnMousePressed had to guard it, which is why
-	-- the properties right-click chain was dead).  util.AimVector (lutil_shared)
-	-- is documented as this function's inverse maths, so rebuild the direction
-	-- from the local player's view: EyeAngles for the basis, GetFOV for the
-	-- projection (the reference uses the live render FOV; GetFOV is the same
-	-- value outside zoom lerps).  With no local player (main menu) the
-	-- EyeAngles shim answers angle_zero and the vector is simply forward.
-	if ( gui.ScreenToVector == nil and util ~= nil and util.AimVector ~= nil ) then
-
-		function gui.ScreenToVector( x, y )
-
-			local lp = LocalPlayer()
-
-			local fov = 90
-			if ( IsValid( lp ) and lp.GetFOV ~= nil ) then
-				fov = lp:GetFOV()
-			end
-
-			return util.AimVector( EyeAngles(), fov, x, y, ScrW(), ScrH() )
-
-		end
-
-	end
-
-end
-
-if ( _G.game ~= nil and game.GetWorld == nil and _G.ents ~= nil and ents.FindByClass ~= nil ) then
-
-	function game.GetWorld()
-		local found = ents.FindByClass( "worldspawn" )
-		if ( found ~= nil ) then
-			return found[ 1 ]
-		end
-		return nil
 	end
 
 end
@@ -643,27 +271,9 @@ end
 -- single player is always allowed (GMod exempts SP from the admin gate), and
 -- in multiplayer nobody is an admin by default - same as GMod without a
 -- users.txt.
-if ( _R ~= nil and _R.CBasePlayer ~= nil and _R.CBasePlayer.IsAdmin == nil ) then
-	_R.CBasePlayer.IsAdmin = function()
-		return game.SinglePlayer() == true
-	end
-end
 
 -- GMod: player.GetHumans() - non-bot players (the save loader's "the one
 -- human" fallback).
-if ( _G.player ~= nil and player.GetHumans == nil and player.GetAll ~= nil ) then
-
-	function player.GetHumans()
-		local out = {}
-		for _, ply in ipairs( player.GetAll() or {} ) do
-			if ( ply.IsBot == nil or not ply:IsBot() ) then
-				out[ #out + 1 ] = ply
-			end
-		end
-		return out
-	end
-
-end
 
 -- ===========================================================================
 -- HL2SB GMod compat: DEFINE_BASECLASS( name )  (both realms)
@@ -720,25 +330,6 @@ print( "[HL2SB] gmod_globals loaded: DEFINE_BASECLASS=" .. type( rawget( _G, "DE
 
 
 
--- HL2SB GMod compat (2026-09-24): EyePos() / EyeAngles() - GMod globals for
--- the LOCAL PLAYER's eye position/angles (First Person Body snapshots
--- EyeAngles() during body init and per-frame).  Engine locals only exist
--- in-game, so fall back to zero vectors/angles on the menu or before spawn.
-if ( EyePos == nil ) then
-	function EyePos()
-		local lp = LocalPlayer()
-		if ( IsValid( lp ) ) then return lp:EyePos() end
-		return Vector( 0, 0, 0 )
-	end
-end
-if ( EyeAngles == nil ) then
-	function EyeAngles()
-		local lp = LocalPlayer()
-		if ( IsValid( lp ) ) then return lp:EyeAngles() end
-		return Angle( 0, 0, 0 )
-	end
-end
-
 -- HL2SB GMod compat (2026-09-24): meta-table chain for FindMetaTable reads.
 -- Addons capture methods straight off the bare metatable (PLAYER.Alive,
 -- ENTITY.OnGround) - a RAW table read that never triggers the userdata
@@ -767,26 +358,6 @@ if ( FindMetaTable ~= nil ) then
 		if ( animmeta ~= nil and animmeta ~= entmeta and getmetatable( entmeta ) == nil ) then
 			setmetatable( entmeta, { __index = animmeta } )
 		end
-	end
-end
-
--- HL2SB GMod compat (2026-09-24): ents.CreateClientProp - GMod's clientside
--- prop_physics creator.  The engine's ClientsideModel() (gmod_compat.lua ->
--- Entities.CreateClientEntity) gives the same thing for our purposes: a
--- clientside C_BaseAnimating the addon can model/bone/pose.  Accepts the
--- model string the First Person Body addon passes (GMod wants a Vector but
--- ignores it for this addon's usage - it SetModels and SetPoses right after).
-if ( ents ~= nil and ents.CreateClientProp == nil ) then
-	function ents.CreateClientProp( positionOrModel )
-		local model = "models/error.mdl"
-		if ( isstring( positionOrModel ) ) then
-			model = positionOrModel
-		end
-		local ent = ClientsideModel( model, 0 )
-		if ( IsValid( ent ) and not isstring( positionOrModel ) ) then
-			ent:SetPos( positionOrModel )
-		end
-		return ent
 	end
 end
 
