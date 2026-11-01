@@ -38,13 +38,4 @@ for name in pairs( player_manager.GetAllPlayerModels() ) do
 	end
 end
 
-local playerMeta = FindMetaTable( "Player" )
-if ( playerMeta ~= nil ) then
-	if ( playerMeta.SetNoCollideWithTeammates == nil ) then
-		function playerMeta:SetNoCollideWithTeammates( enabled ) self.__hl2sbTeammateNoCollide = enabled and true or false end
-	end
-	if ( playerMeta.SetAvoidPlayers == nil ) then
-		function playerMeta:SetAvoidPlayers( enabled ) self.__hl2sbAvoidPlayers = enabled and true or false end
-	end
-end
 include( "hl2sb/compat/player_methods.lua" )

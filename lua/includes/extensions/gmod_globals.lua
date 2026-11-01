@@ -72,48 +72,6 @@ AddCSLuaFile = AddCSLuaFile or function( ... ) return true end
 --   ents.FindInBox - the engine binding is spelled Entities.GetInBox here.
 --
 -- ===========================================================================
--- ===========================================================================
--- HL2SB: server-realm stand-ins for two client-only APIs that the ported GMod
--- libraries touch at LOAD time.
---
--- lua/includes/modules/*.lua are loaded on BOTH realms (the engine's directory
--- pass cannot know which files are client-only), and two of them fail on the
--- server at every map load:
---
---   halo.lua:7         local rt_Store = render.GetScreenEffectTexture( 0 )
---                      -> "attempt to index a nil value (global 'render')"
---   properties.lua:175 net.Receive( "properties", ... )
---                      -> "attempt to call a nil value (field 'Receive')"
---
--- Neither library can do anything useful on a server (one is screen-effect
--- rendering, the other is the client->server net channel), but the throw takes
--- the whole module down with it and writes a red line into ds_debug.log once per
--- load.  The stand-ins below let them load: on the server render.* hands back a
--- function that yields nil (so `render.Foo()` is nil rather than an error), and
--- net.Receive accepts a handler and drops it.
---
--- WARNING: this block MUST sit above the `if ( not _CLIENT )` section below: that
--- section ends with a bare `return`, so on the server the rest of this file
--- never runs.  It used to be at the end of the file, where it was dead code and
--- the two errors kept appearing every load (log lines properties.lua:175 and
--- halo.lua:7 at 01:25 on 2026-09-13, AFTER gmod_globals.lua had loaded).
--- ===========================================================================
-if ( SERVER ) then
-
-	if ( render == nil ) then
-		render = setmetatable( {}, {
-			__index = function()
-				return function() return nil end
-			end
-		} )
-	end
-
-	if ( net ~= nil and net.Receive == nil ) then
-		net.Receive = function() end
-	end
-
-end
-
 if ( not _CLIENT ) then
 	if ( _GAMEUI ) then
 		GetConVar = GetConVar or function( name ) return ConVar( name ) end
@@ -151,10 +109,6 @@ if ( _GAMEUI ) then
 	ScreenScaleH = ScreenScaleH or function( size ) return size * ( ScrH() / 480 ) end
 end
 
-ScreenScaleW = ScreenScaleW or function( size )
-	return size * ( ScrW() / 640 )
-end
-
 if ( _GAMEUI ) then
 	GetConVar = GetConVar or function( name ) return ConVar( name ) end
 	GetConVarNumber = GetConVarNumber or function( name )
@@ -166,11 +120,6 @@ if ( _GAMEUI ) then
 		return c and c:GetString() or ""
 	end
 end
-
--- NOTE: the server-realm render/net.Receive stand-ins are NOT here.  This file
--- ends the server's pass with the bare `return` above (inside the
--- `if ( not _CLIENT )` block), so anything after that point never runs on the
--- server.  They live near the top of the file instead.
 
 -- ===========================================================================
 -- HL2SB: the `achievements` table (GMod global, client)
@@ -214,58 +163,6 @@ if ( achievements == nil ) then
 	}
 
 end
-if ( CLIENT and _G.gui ~= nil and _G.input ~= nil and input.GetCursorPos ~= nil ) then
-
-	-- HL2SB (2026-10-20 mc_swep audit B5): GMod's clipboard writer is the bare
-	-- global SetClipboardText( str ) (client realm); this fork's implementation
-	-- lives under system.SetClipboardText (vgui ISystem), so publish the
-	-- global spelling.  The minecraft swep's right-click "Copy to Clipboard"
-	-- dies on a nil global without it.
-	if ( _G.SetClipboardText == nil and _G.system ~= nil and _G.system.SetClipboardText ~= nil ) then
-		function _G.SetClipboardText( strText )
-			return _G.system.SetClipboardText( strText )
-		end
-	end
-
-end
-
--- ===========================================================================
--- HL2SB (2026-10-05): the gm_save / gm_load layer's remaining GMod game.*
--- surface.  These live here and NOT in extensions/gmod_compat.lua because that
--- file is in no load path at all (no include, no folder pass) - everything it
--- defines is dead code; gmod_globals.lua is the one extensions file proven to
--- run in every realm (game.GetWorld above has been answering since before the
--- save system existed).
--- ===========================================================================
-
--- GMod: game.CleanUpMap( dontSendToClients, extraFilters, callback ).
--- The engine part is the HL2SB_GameCleanUpMap global (game/server/lua/lutil.cpp
--- -> CHL2MPRules::CleanUpMap(), which raises the "CleanUpMap" hook itself).
--- GMod raises GM:PreCleanupMap before and GM:PostCleanupMap after; gmsave's
--- whole load flow hangs on PostCleanupMap (clean the map, then paste the dupe
--- back), so the wrapper fires both around the engine call.
-if ( _G.game ~= nil and game.CleanUpMap == nil ) then
-
-	function game.CleanUpMap( dontSendToClients, extraFilters, callback )
-		if ( hook ~= nil and hook.Run ~= nil ) then
-			hook.Run( "PreCleanupMap" )
-		end
-
-		if ( HL2SB_GameCleanUpMap ~= nil ) then
-			HL2SB_GameCleanUpMap()
-		end
-
-		if ( hook ~= nil and hook.Run ~= nil ) then
-			hook.Run( "PostCleanupMap" )
-		end
-
-		if ( callback ~= nil ) then
-			callback()
-		end
-	end
-
-end
-
 -- GMod: Player:IsAdmin().  This engine has no usergroup system (cod-c4's
 -- shared.lua died on the missing method).  Minimum GMod-default semantics:
 -- single player is always allowed (GMod exempts SP from the admin gate), and
@@ -292,33 +189,6 @@ end
 -- (2026-09-20 晚) 定义已移到引擎 C++ 侧（lsrcinit.cpp，编译期拼名）：
 -- Lua 侧 rawset(_G,...) 在当前加载管线里写不进可见的全局表，
 -- 探针实测 DEFINE_BASECLASS=nil。这里不再重复定义。
-
--- HL2SB GMod compat: Msg( ... ) -- GMod's console print (wiki: Global.Msg).
--- print() already reaches the console + hl2sb_lua.log on this engine, and some
--- GMod self-check scripts call Msg unconditionally.
-if ( Msg == nil ) then
-	function Msg( ... )
-		print( ... )
-	end
-end
-
--- HL2SB GMod compat: MsgN / Warning / ErrorNoHalt (wiki: Global.MsgN etc.) --
--- the menu realm probes for these at startup ("MISSING MsgN, Warning, ...").
-if ( MsgN == nil ) then
-	function MsgN( ... )
-		print( ... )
-	end
-end
-if ( Warning == nil ) then
-	function Warning( ... )
-		print( ... )
-	end
-end
-if ( ErrorNoHalt == nil ) then
-	function ErrorNoHalt( ... )
-		print( ... )
-	end
-end
 
 -- HL2SB diagnostic: proves this file ran to the end (the 2026-09-20 syntax
 -- error in the DEFINE_BASECLASS block silently killed every global here).

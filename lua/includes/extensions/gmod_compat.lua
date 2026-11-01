@@ -96,35 +96,6 @@ function game.GetTimeScale()
 	return 1
 end
 
--- GMod: game.CleanUpMap( dontSendToClients, extraFilters, callback )
---
--- 引擎侧实体是 HL2SB_GameCleanUpMap（game/server/lua/lutil.cpp），它调用
--- CHL2MPRules::CleanUpMap()：重建地图自身实体、删掉其余（玩家/手持武器除外）并
--- 触发 CleanUpMap 钩子 —— 与 GMod 文档描述一致。GMod 的三个可选参数这里接受但
--- 忽略（callback 仍在结束后被调用）。
---
--- HL2SB (2026-10-05): GMod 在清理前后各发一个 GM:PreCleanupMap /
--- GM:PostCleanupMap 钩子；本引擎 C++ 只发 "CleanUpMap" 一个。gmsave.LoadMap 的
--- 整个读档流程挂在 PostCleanupMap 上（清完图再 Paste 回去），所以包装器按
--- GMod 的次序补发这两个钩子；C++ 原有的 "CleanUpMap" 钩子保持不动。
-function game.CleanUpMap( dontSendToClients, extraFilters, callback )
-	if ( hook ~= nil and hook.Run ~= nil ) then
-		hook.Run( "PreCleanupMap" )
-	end
-
-	if ( HL2SB_GameCleanUpMap ) then
-		HL2SB_GameCleanUpMap()
-	end
-
-	if ( hook ~= nil and hook.Run ~= nil ) then
-		hook.Run( "PostCleanupMap" )
-	end
-
-	if ( callback ) then
-		callback()
-	end
-end
-
 -- 服务端执行控制台命令（GMod: game.ConsoleCommand）
 if ( _GAME ) then
 	function game.ConsoleCommand( cmd )
