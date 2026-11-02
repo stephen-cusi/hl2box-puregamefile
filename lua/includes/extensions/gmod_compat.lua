@@ -91,26 +91,6 @@ function game.GetPort()
 	return 27015
 end
 
--- Preserve the existing fallback until the rules-state binding is restored.
-function game.GetTimeScale()
-	return 1
-end
-
--- 服务端执行控制台命令（GMod: game.ConsoleCommand）
-if ( _GAME ) then
-	function game.ConsoleCommand( cmd )
-		if ( engine ~= nil and engine.ServerCommand ~= nil ) then
-			engine.ServerCommand( tostring( cmd ) .. "\n" )
-		end
-	end
-else
-	function game.ConsoleCommand( cmd )
-		if ( engine ~= nil and engine.ClientCmd ~= nil ) then
-			engine.ClientCmd( tostring( cmd ) )
-		end
-	end
-end
-
 -- ===========================================================================
 -- 4. 实体 / 玩家的 GMod 方法别名
 --    GMod 脚本大量用 ply:Team() / ply:Nick() / ply:Alive() / ent:GetModel()。
@@ -294,16 +274,6 @@ end
 -- folder name carries.
 -- ===========================================================================
 
-if ( engine ~= nil and engine.ActiveGamemode == nil ) then
-	engine.ActiveGamemode = function()
-		local cvar = GetConVar and GetConVar( "gamemode" )
-
-		if ( cvar ~= nil ) then return cvar:GetString() end
-
-		return "sandbox"
-	end
-end
-
 
 -- ===========================================================================
 -- HL2SB GMod compat (2026-09-24): combustible-lemon addon round.
@@ -428,34 +398,5 @@ end
 if ( CLIENT and EyeVector == nil and render ~= nil and render.MainViewForward ~= nil ) then
 	EyeVector = render.MainViewForward
 	Msg( "[HL2SB]   EyeVector added (render.MainViewForward alias)\n" )
-end
-
--- ---------------------------------------------------------------------------
--- 6. Bone-accessor fallbacks, installed LATE on purpose.
---
---    GetBoneCount / GetBoneName used to be stubbed unconditionally at the top
---    of this file, which ran before the engine bindings were reachable through
---    FindMetaTable( "Entity" ) -- so the stubs won and every model reported
---    "0 bones" / "__INVALIDBONE__" for the whole session.  Installing them
---    once the map is up (InitPostEntity) means the engine binding wins
---    whenever it exists, and plugins still get GMod's harmless defaults when a
---    build really lacks it.
--- ---------------------------------------------------------------------------
-local function HL2SB_InstallBoneFallbacks()
-	if ( FindMetaTable == nil ) then return end
-	local meta = FindMetaTable( "Entity" )
-	if ( meta == nil ) then return end
-
-	if ( meta.GetBoneCount == nil ) then
-		function meta:GetBoneCount() return 0 end
-	end
-
-	if ( meta.GetBoneName == nil ) then
-		function meta:GetBoneName( id ) return "__INVALIDBONE__" end
-	end
-end
-
-if ( hook ~= nil and hook.Add ~= nil ) then
-	hook.Add( "InitPostEntity", "hl2sb_gmod_compat_bone_fallbacks", HL2SB_InstallBoneFallbacks )
 end
 
