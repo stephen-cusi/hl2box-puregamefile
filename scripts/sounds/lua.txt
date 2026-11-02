@@ -1,0 +1,3 @@
+"HL2SB_RuntimeSounds"
+{
+}

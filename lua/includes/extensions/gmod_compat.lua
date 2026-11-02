@@ -13,25 +13,14 @@
     加载点：lua/includes/extensions/（每张地图加载一次）。
 -----------------------------------------------------------------------------]]--
 
-local type = type
-local rawget = rawget
-local getmetatable = getmetatable
 local tostring = tostring
 local tonumber = tonumber
-local math_floor = math.floor
 
 -- ===========================================================================
 -- 0. Lua 5.1 兼容
 --    Lua 5.4 去掉了全局 unpack()。GMod 脚本（和我们搬过来的库）到处用它。
 -- ===========================================================================
 
-unpack = unpack or table.unpack
-loadstring = loadstring or load
-setfenv = setfenv or function( f, env )
-	-- Lua 5.4 没有 setfenv；只能对函数有效，用 debug.upvaluejoin 太重，
-	-- 这里退化成“原样返回”，让老代码至少不因为 nil 调用炸掉。
-	return f
-end
 
 -- ===========================================================================
 -- 1. 类型谓词（GMod 全局）
@@ -39,26 +28,6 @@ end
 --    所以实体/Vector 这些 userdata 也能正确判定。
 -- ===========================================================================
 
-local function DefPredicate( name, checker )
-	if ( _G[ name ] == nil ) then
-		_G[ name ] = checker
-	end
-end
-
--- 引擎的 type() 对带 __type 的 metatable 返回 __type，否则返回 luaL_typename。
-local function T( v ) return type( v ) end
-
-DefPredicate( "isuserdata", function( v ) return T( v ) == "userdata" end )
-DefPredicate( "isthread",   function( v ) return T( v ) == "thread" end )
-
-DefPredicate( "iscolor", function( v )
-	if ( T( v ) ~= "userdata" ) then return false end
-
-	local mt = getmetatable( v )
-	if ( mt == nil ) then return false end
-
-	return rawget( mt, "__type" ) == "Color"
-end )
 
 -- ===========================================================================
 -- 3. 全局 game 表
@@ -67,11 +36,6 @@ end )
 
 game = game or {}
 
-local function SafeCall( fn, ... )
-	local ok, a, b, c = pcall( fn, ... )
-	if ( not ok ) then return nil end
-	return a, b, c
-end
 
 -- HL2SB: 引擎本体（lsrcinit）注册过 game.SinglePlayer（gpGlobals->maxClients <= 1，
 -- 服务端语义准确）。这里旧版整函数覆盖成 engine.GetMaxClients —— 但本引擎没有
@@ -82,14 +46,6 @@ end
 -- GMod: player.GetHumans() -- 非机器人玩家。gmsave 读档兜底找"唯一的那个
 -- 玩家"用；本引擎没有 C 绑定，在 GetAll 上滤 IsBot 等价。
 
-function game.GetIP()
-	if ( engine == nil or engine.GetGameDir == nil ) then return "" end
-	return SafeCall( engine.GetGameDir ) or ""
-end
-
-function game.GetPort()
-	return 27015
-end
 
 -- ===========================================================================
 -- 4. 实体 / 玩家的 GMod 方法别名
@@ -142,17 +98,6 @@ end
 --     minecraft 等老插件全用 Networked 拼法。
 -- ===========================================================================
 
--- ===========================================================================
--- 4c. ClientsideModel( model, renderGroup ) —— 客户端临时模型全局
---     引擎侧已有 Entities.CreateClientEntity，这里补 GMod 的全局拼法。
---     返回的实体走 CBaseFlex 元表链（继承 CBaseAnimating/CBaseEntity 方法：
---     SetPos/SetAngles/SetSkin/SetNoDraw/DrawShadow/DrawModel/Remove/骨骼操作）。
--- ===========================================================================
-if ( CLIENT and _G.ClientsideModel == nil and entmeta ~= nil and Entities ~= nil and Entities.CreateClientEntity ~= nil ) then
-	_G.ClientsideModel = function( model, renderGroup )
-		return Entities.CreateClientEntity( model, renderGroup )
-	end
-end
 
 -- ===========================================================================
 -- 6. ents.FindByClass / FindByName —— GMod 版是返回表，HL2SB 的 gEntList 是链表
@@ -164,88 +109,6 @@ end
 -- FindInCone 按 wiki：以 WorldSpaceCenter 落在半角余弦 angle_cos 内为准。
 -- ===========================================================================
 
-
--- ===========================================================================
--- 6c. sound.Add —— GMod 的运行时音效脚本。addons 在 autorun 里注册
--- "SCP049_Alert" 这类名字，之后 EmitSound / CreateSound 直接用名字。
--- HL2SB 的引擎没有可注入的 soundscript 表，这里建一个 Lua 注册表，并把
--- Entity:EmitSound 和全局 CreateSound 包一层：名字命中脚本时解析成随机
--- 变体路径，同时把脚本里的 soundlevel/volume/channel 作为未显式传参时的默认值。
--- ===========================================================================
-
-if ( _G.sound == nil ) then _G.sound = {} end
-
-local hl2sb_soundscripts = {}
-
-function sound.Add( tbl )
-	if ( not istable( tbl ) ) then return end
-	if ( tbl.name == nil or tbl.name == "" ) then return end
-
-	-- GMod 的 sound 字段可以是单串或表（随机变体）
-	local variants = {}
-	if ( istable( tbl.sound ) ) then
-		for i = 1, #tbl.sound do
-			variants[ #variants + 1 ] = tbl.sound[ i ]
-		end
-	elseif ( tbl.sound ~= nil ) then
-		variants[ #variants + 1 ] = tostring( tbl.sound )
-	end
-
-	if ( #variants == 0 ) then return end
-
-	hl2sb_soundscripts[ string.lower( tbl.name ) ] = {
-		Name = tbl.name,
-		Sounds = variants,
-		Channel = tbl.channel,
-		Volume = tonumber( tbl.volume ),
-		Level = tonumber( tbl.soundlevel ) or tonumber( tbl.level ),
-		Pitch = tonumber( tbl.pitchstart ) or tonumber( tbl.pitch ),
-	}
-end
-
--- 名字 → 脚本；未注册返回 nil（调用方走原始路径）
-function sound.GetProperties( name )
-	if ( name == nil ) then return nil end
-	return hl2sb_soundscripts[ string.lower( tostring( name ) ) ]
-end
-
--- EmitSound / CreateSound 的名字解析。变体在"每次发声"时随机（GMod 语义），
--- CreateSound 是长驻通道，解析一次后固定。
-local function HL2SB_ResolveSoundScript( name, level, volume, channel, pick )
-	if ( name == nil or hl2sb_soundscripts == nil ) then return name, level, volume, channel end
-
-	local script = hl2sb_soundscripts[ string.lower( tostring( name ) ) ]
-	if ( script == nil ) then return name, level, volume, channel end
-
-	local path = name
-	if ( #script.Sounds > 0 ) then
-		path = script.Sounds[ pick and math.random( #script.Sounds ) or 1 ]
-	end
-
-	return path,
-		level or script.Level,
-		volume or script.Volume,
-		channel or script.Channel
-end
-
--- Entity:EmitSound( name, soundLevel, pitchPercent, volume, channel, ... )
-local ENTITY_META = FindMetaTable( "Entity" )
-if ( ENTITY_META ~= nil and ENTITY_META.EmitSound ~= nil and ENTITY_META.EmitSound ~= true ) then
-	local hl2sb_orig_EmitSound = ENTITY_META.EmitSound
-	ENTITY_META.EmitSound = function( self, name, soundLevel, pitchPercent, volume, channel, ... )
-		local path, lvl, vol, ch = HL2SB_ResolveSoundScript( name, soundLevel, volume, channel, true )
-		return hl2sb_orig_EmitSound( self, path, lvl, pitchPercent, vol, ch, ... )
-	end
-end
-
--- 全局 CreateSound( ent, name ) —— CSoundPatch 长驻通道
-if ( _G.CreateSound ~= nil ) then
-	local hl2sb_orig_CreateSound = CreateSound
-	CreateSound = function( ent, name, ... )
-		local path = HL2SB_ResolveSoundScript( name, nil, nil, nil, false )
-		return hl2sb_orig_CreateSound( ent, path, ... )
-	end
-end
 
 -- ===========================================================================
 -- 8. AccessorFunc / RunString —— GMod 常用全局
