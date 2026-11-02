@@ -2,7 +2,9 @@
 -- Load after native modules and before original Derma and addon registration.
 if ( rawget( _G, "HL2SB_CoreModulesReady" ) ) then return end
 _G.HL2SB_CoreModulesReady = true
-include( "hl2sb/compat/binary_modules.lua" )
+if ( not system or not system.IsWindows or not system.IsWindows() ) then
+    include( "hl2sb/compat/binary_modules.lua" )
+end
 
 -- Entity factories accept the native nextbot type without an explicit base.
 hook.Add( "PreRegisterSENT", "HL2SBNextbotDefaultBase", function( definition )

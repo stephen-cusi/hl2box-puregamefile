@@ -35,7 +35,7 @@ function vgui.register( tPanel, strName, strBaseClass )
   vgui[ strName ] = function( ... )
     local helper = tHelpers[ strName ]
     local panel = vgui[ helper.__base ]( ... )
-    table.merge( panel:GetRefTable(), helper )
+    table.Merge( panel:GetRefTable(), helper )
     panel.BaseClass = tHelpers[ helper.__base ]
     panel:Init( ... )
     return panel

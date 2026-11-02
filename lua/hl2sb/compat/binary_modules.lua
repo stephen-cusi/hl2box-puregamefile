@@ -5,6 +5,8 @@ if ( system.IsWindows() ) then
 	suffix, binext = ( is64bit and "win64" or "win32" ), ".dll"
 elseif ( system.IsAndroid and system.IsAndroid() ) then
 	suffix, binext = ( is64bit and "android64" or "android32" ), ".so"
+elseif ( system.IsOsx and system.IsOsx() ) then
+	suffix, binext = ( is64bit and "osx64" or "osx" ), ".so"
 else
 	suffix, binext = ( is64bit and "linux64" or "linux" ), ".so"
 end

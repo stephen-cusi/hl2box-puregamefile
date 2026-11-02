@@ -74,23 +74,6 @@ if ( plymeta ~= nil ) then
 	-- （GMod 单人本来就豁免管理员门），多人恒假（GMod 默认也没有人自带
 	-- admin 组，users.txt 那套这里没有）。
 
-	-- player_manager 在 extensions 之后加载，所以这两个别名要晚绑定。
-	if ( plymeta.SetPlayerClass == nil ) then
-		plymeta.SetPlayerClass = function( ply, class )
-			if ( _G.player_manager ~= nil ) then
-				return player_manager.SetPlayerClass( ply, class )
-			end
-		end
-	end
-
-	if ( plymeta.GetPlayerClass == nil ) then
-		plymeta.GetPlayerClass = function( ply )
-			if ( _G.player_manager ~= nil ) then
-				return player_manager.GetPlayerClass( ply )
-			end
-			return nil
-		end
-	end
 end
 
 -- ===========================================================================
@@ -145,11 +128,6 @@ end
 --   1. seven enum globals (CHAN_ITEM, GMOD_CHANNEL_*, COLLISION_GROUP_WEAPON
 --      /WORLD, MAT_*)            -> plain constants below.
 --   2. Entity:NearestPoint       -> pure-Lua OBB nearest point.
---   3. DynamicLight / sound.PlayFile (IGModAudioChannel) -> documented stubs.
---      This fork binds no dlight renderer and no BASS audio channel; the stubs
---      keep addons that touch them error-free.  Player:StripWeapon and
---      DamageInfo:IsDamageType / Entity:GetMaterialType / Player:KeyDownLast
---      needed real bindings and were done engine-side the same day.
 --
 -- NOTE: unlike sh_init.lua (which sits behind the never-loaded
 -- gmod_compatibility/ folder pass), everything in THIS file actually loads --
@@ -231,35 +209,4 @@ do
 	local CMD_META = FindMetaTable( "CUserCmd" )
 end
 
--- ---------------------------------------------------------------------------
--- 3. Client stubs: DynamicLight( index ) and sound.PlayFile.
---    DynamicLight is real since 2026-10-07: render.DynamicLight allocates an
---    engine dlight and returns a live table view (field writes land in the
---    light struct), so the global just forwards to it.  PlayFile reports a
---    channel error so addons skip their VO gracefully
---    (combustible_lemon checks `if soundChannel ~= nil` before storing it).
--- ---------------------------------------------------------------------------
-if ( CLIENT ) then
-	sound = sound or {}
-	if ( sound.PlayFile == nil ) then
-		sound.PlayFile = function( path, flags, callback )
-			if ( isfunction( callback ) ) then
-				-- GMod callback signature: ( channel, errorId, errorName )
-				callback( nil, 0, "hl2sb: no IGModAudioChannel binding" )
-			end
-		end
-	end
-end
-
--- ---------------------------------------------------------------------------
--- 4. EyeVector( ) -- GMod global (client): the forward vector of the main
---    view.  The render library already exposes exactly that value as
---    render.MainViewForward, so the global is just an alias for it.
---    hl1sweps' RPG laser spot (ent_hl1_laser_spot) pulls its dot a few units
---    back along this vector on every translucent pass.
--- ---------------------------------------------------------------------------
-if ( CLIENT and EyeVector == nil and render ~= nil and render.MainViewForward ~= nil ) then
-	EyeVector = render.MainViewForward
-	Msg( "[HL2SB]   EyeVector added (render.MainViewForward alias)\n" )
-end
 

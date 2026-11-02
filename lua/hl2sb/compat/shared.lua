@@ -1,4 +1,3 @@
-include( "hl2sb/compat/gamemode.lua" )
 include( "hl2sb/compat/motionsensor.lua" )
 -- Shared native aliases and scripted-effect compatibility.
 
@@ -18,6 +17,5 @@ end
 
 
 include( "hl2sb/compat/enumerations.lua" )
-include( "hl2sb/compat/player_manager.lua" )
 
 include( "hl2sb/compat/sandbox.lua" )

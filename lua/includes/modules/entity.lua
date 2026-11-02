@@ -59,7 +59,7 @@ function get( strClassname )
   if ( not tEntity ) then
     return nil
   end
-  tEntity = table.copy( tEntity )
+  tEntity = table.Copy( tEntity )
 
   -- HL2SB GMod 实体兼容：GMod 的实体脚本写 ENT.Base = "base_entity"。
   -- 优先用 Base 解析继承，没有才回落到引擎塞的 __base（= prop_scripted）。
@@ -93,7 +93,7 @@ function get( strClassname )
                  "\" with non-existing base class \"" .. tostring( sBase ) .. "\"!\n" )
       end
     else
-      return table.inherit( tEntity, tBaseEntity )
+      return table.Inherit( tEntity, tBaseEntity )
     end
   end
   return tEntity
