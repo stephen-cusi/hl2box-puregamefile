@@ -30,15 +30,15 @@ FileSystem
 			// folder.
 			//
 			// Note that this folder is scanned only when the game is booted.
-			game+mod			hl2box/custom/*
-			game+mod            hl2box/addons/*
+			game+mod			hl2sb/custom/*
+			game+mod            hl2sb/addons/*
 
 			// We search VPK files before ordinary folders, because most files will be found in
 			// VPK and we can avoid making thousands of file system calls to attempt to open files
 			// in folders where they don't exist.  (Searching a VPK is much faster than making an operating
 			// system call.)
 
-			game+mod 			hl2box
+			game+mod 			hl2sb
 
 			game				|all_source_engine_paths|hl2/hl2_textures.vpk
 			game				|all_source_engine_paths|hl2/hl2_sound_vo_english.vpk
@@ -115,17 +115,17 @@ FileSystem
 
 			// Add the hl2sb directory as a game search path.  This is also where where writes
 			// to the "game" path go.
-			game+game_write		hl2box
+			game+game_write		hl2sb
 
 			// Where the game's binaries are
-			gamebin				hl2box/bin
+			gamebin				hl2sb/bin
 
 			// Last, mount in shared HL2 loose files
 			game				|all_source_engine_paths|hl2
 			// HL2SB: loose hl2mp dir unmounted 2026-09-28 together with the hl2mp
 			// VPK lines above - content is provided by hl2 + garrysmod mounts.
 			// game 				|all_source_engine_paths|hl2mp
-			game 				|all_source_engine_paths|hl2box
+			game 				|all_source_engine_paths|hl2sb
 
 // HL2SB: the whole garrysmod directory is deliberately NOT mounted - that would make
 // the Lua loader enumerate GMod's own lua/ tree (thousands of files).  Only the VPKs
@@ -147,7 +147,7 @@ FileSystem
 			// The map search pack is mounted at the top of the search path list,
 			// but only while you are connected that server and on that map.
 			
-			game+download	hl2box/download
+			game+download	hl2sb/download
 		}
 	}
 }
