@@ -40,16 +40,8 @@ local INVALID_FONT = INVALID_FONT
 local setmetatable = setmetatable
 local ipairs = ipairs
 local type = type
-local ComputeStringWidth = UTIL.ComputeStringWidth
 local GetFontName = _R.IScheme.GetFontName
 local CreateFont = surface.CreateFont
-local DrawSetTextFont = surface.DrawSetTextFont
-local GetCharABCwide = surface.GetCharABCwide
-local GetCharacterWidth = surface.GetCharacterWidth
-local GetFontAscent = surface.GetFontAscent
-local GetFontTall = surface.GetFontTall
-local GetTextSize = surface.GetTextSize
-local IsFontAdditive = surface.IsFontAdditive
 local SetFontGlyphSet = surface.SetFontGlyphSet
 
 -------------------------------------------------------------------------------
@@ -111,77 +103,6 @@ local function unwrapFont( font )
   return font
 end
 
-function UTIL.ComputeStringWidth( font, str )
-  return ComputeStringWidth( unwrapFont( font ), str )
-end
-
 function _R.IScheme.GetFontName( font )
   return GetFontName( unwrapFont( font ) )
-end
-
-function surface.CreateFont( a, b )
-  -- HL2SB (2026-09-25): ALWAYS pass through to the C binding now.  The old
-  -- container branch (bare CreateFont() -> HFontContainer table) broke every
-  -- C-captured caller: draw.lua's draw.GetFont captured the raw C
-  -- SetFontGlyphSet at load, then got our CONTAINER back from CreateFont() ->
-  -- "HFont expected, got table" 2200x/frame, and gmod_deathnotice failed to
-  -- load (kill feed gone).  A bare CreateFont() now returns a real HFont.
-  return CreateFont( a, b )
-end
-
-function surface.DrawSetTextFont( font )
-  return DrawSetTextFont( unwrapFont( font ) )
-end
-
-function surface.GetCharABCwide( font, ch )
-  return GetCharABCwide( unwrapFont( font ), ch )
-end
-
-function surface.GetCharacterWidth( font, ch )
-  return GetCharacterWidth( unwrapFont( font ), ch )
-end
-
-function surface.GetFontAscent( font, ch )
-  return GetFontAscent( unwrapFont( font ), ch )
-end
-
-function surface.GetFontTall( font )
-  return GetFontTall( unwrapFont( font ) )
-end
-
-function surface.GetTextSize( font, text )
-  -- GMod: surface.GetTextSize( text ) -- ONE argument, measured with the font
-  -- last set by surface.SetFont.  The C binding reads that argument with
-  -- luaL_checkstring semantics, so numbers are coerced to their string form
-  -- (math.Round returns a number: the NVG addon's HUD called
-  -- surface.GetTextSize( lightvalue ) and the old type=="string" gate dropped
-  -- it into the ( font, text ) path, where the missing second argument died
-  -- with "bad argument #2 to 'GetTextSize' (string expected, got nil)" every
-  -- frame).  Two arguments keep the legacy ( font, text ) spelling; font
-  -- containers unwrap as before.
-  if ( text == nil ) then
-    return GetTextSize( font )
-  end
-  return GetTextSize( unwrapFont( font ), text )
-end
-
-function surface.IsFontAdditive( font )
-  return IsFontAdditive( unwrapFont( font ) )
-end
-
-function surface.SetFontGlyphSet( font, windowsFontName, tall, weight, blur, scanlines, flags, nRangeMin, nRangeMax )
-  local t = type( font )
-  if ( t == "table" and font.font ~= nil ) then
-    -- container: remember the glyph set so resolution changes can rebuild
-    font.windowsFontName = windowsFontName
-    font.tall = tall
-    font.weight = weight
-    font.blur = blur
-    font.scanlines = scanlines
-    font.flags = flags
-    font.nRangeMin = nRangeMin
-    font.nRangeMax = nRangeMax
-    return SetFontGlyphSet( font.font, windowsFontName, tall, weight, blur, scanlines, flags, nRangeMin, nRangeMax )
-  end
-  return SetFontGlyphSet( font, windowsFontName, tall, weight, blur, scanlines, flags, nRangeMin, nRangeMax )
 end
