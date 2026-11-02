@@ -73,53 +73,12 @@ AddCSLuaFile = AddCSLuaFile or function( ... ) return true end
 --
 -- ===========================================================================
 if ( not _CLIENT ) then
-	if ( _GAMEUI ) then
-		GetConVar = GetConVar or function( name ) return ConVar( name ) end
-		GetConVarNumber = GetConVarNumber or function( name )
-			local c = ConVar( name )
-			return c and c:GetFloat() or 0
-		end
-		GetConVarString = GetConVarString or function( name )
-			local c = ConVar( name )
-			return c and c:GetString() or ""
-		end
-	end
-
 	return
 end
 
 -- ===========================================================================
 -- Client side
 -- ===========================================================================
-
--- HL2SB: GMod's ScreenScale family.  These are ENGINE globals in GMod (C++),
--- not util.lua helpers -- GMod's own lua/includes/util.lua (ours, byte for
--- byte) does not define them, and lua/includes/notification.lua needs them on
--- line 2:
---
---     local textH = math.max( 12, math.ceil( ScreenScaleH( 9 ) ) )
---
--- Without them that file fails to load completely, which shows up as exactly
--- one [Lua] FAILED line -- that is how the undo notification vanished.
---
--- In the game client, the original client globals provide ScreenScale and
--- ScreenScaleH. The menu state uses its own fallback.
-if ( _GAMEUI ) then
-	ScreenScale = ScreenScale or function( size ) return size * ( ScrW() / 640 ) end
-	ScreenScaleH = ScreenScaleH or function( size ) return size * ( ScrH() / 480 ) end
-end
-
-if ( _GAMEUI ) then
-	GetConVar = GetConVar or function( name ) return ConVar( name ) end
-	GetConVarNumber = GetConVarNumber or function( name )
-		local c = ConVar( name )
-		return c and c:GetFloat() or 0
-	end
-	GetConVarString = GetConVarString or function( name )
-		local c = ConVar( name )
-		return c and c:GetString() or ""
-	end
-end
 
 -- ===========================================================================
 -- HL2SB: the `achievements` table (GMod global, client)
