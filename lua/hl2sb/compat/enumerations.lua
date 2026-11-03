@@ -16,7 +16,16 @@ BOX_BOTTOM                = 5
 _E = _E or {}
 
 _E.DOCK_TYPE = _E.DOCK_TYPE or {
-	NONE = 0, FILL = 1, LEFT = 2, TOP = 3, RIGHT = 4, BOTTOM = 5,
+	NONE = 0, FILL = 1, LEFT = 2, RIGHT = 3, TOP = 4, BOTTOM = 5,
+}
+
+-- HL2SB: mouse button codes.  GMod publishes MOUSE_LEFT / MOUSE_RIGHT /
+-- MOUSE_MIDDLE as flat globals in every realm (source ButtonCode.h values);
+-- the engine's _E table has no MOUSE group, and the derma controls compare
+-- incoming mouse codes against them (DNumSlider, DColorCube, DAlphaBar,
+-- DNumberScratch, DMenuOption...).
+_E.MOUSE = _E.MOUSE or {
+	LEFT = 107, RIGHT = 108, MIDDLE = 109,
 }
 
 _E.CULL_MODE = _E.CULL_MODE or {
@@ -188,13 +197,17 @@ SENSORBONE = {
 	HEAD = 3,
 }
 
-if (CLIENT) then
+if (CLIENT or _GAMEUI) then
 	NODOCK = _E.DOCK_TYPE.NONE
 	FILL = _E.DOCK_TYPE.FILL
 	LEFT = _E.DOCK_TYPE.LEFT
 	RIGHT = _E.DOCK_TYPE.RIGHT
 	TOP = _E.DOCK_TYPE.TOP
 	BOTTOM = _E.DOCK_TYPE.BOTTOM
+
+	MOUSE_LEFT = _E.MOUSE.LEFT
+	MOUSE_RIGHT = _E.MOUSE.RIGHT
+	MOUSE_MIDDLE = _E.MOUSE.MIDDLE
 
     STENCILCOMPARISONFUNCTION_NEVER = _E.STENCIL_COMPARISON_FUNCTION.NEVER
     STENCILCOMPARISONFUNCTION_LESS = _E.STENCIL_COMPARISON_FUNCTION.LESS

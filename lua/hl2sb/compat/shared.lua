@@ -17,5 +17,3 @@ end
 
 
 include( "hl2sb/compat/enumerations.lua" )
-
-include( "hl2sb/compat/sandbox.lua" )
