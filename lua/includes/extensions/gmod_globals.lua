@@ -61,7 +61,6 @@ PLAYER_RELOAD	= 8
 PLAYER_START_AIMING	= 9
 PLAYER_LEAVE_AIMING	= 10
 
-AddCSLuaFile = AddCSLuaFile or function( ... ) return true end
 
 -- ===========================================================================
 -- HL2SB (2026-10-08): base-gamemode globals used by the ported base files.
