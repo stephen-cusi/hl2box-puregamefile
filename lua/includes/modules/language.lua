@@ -37,7 +37,7 @@ function Add( key, value )
 		Phrases[ key ] = { en = tostring( value ) }
 	end
 
-	if ( CLIENT and Localizations and Localizations.AddString ) then
+	if ( ( CLIENT or MENU_DLL ) and Localizations and Localizations.AddString ) then
 		local entry = Phrases[ key ]
 		local cvar = GetConVar and GetConVar( "cl_language" )
 		local code = cvar and cvar:GetString() or "english"
@@ -396,7 +396,7 @@ local function LoadPropertiesFile( path, code )
 				end
 				entry[ code ] = value
 				Phrases[ key ] = entry
-				if ( CLIENT and Localizations and Localizations.AddString ) then
+				if ( ( CLIENT or MENU_DLL ) and Localizations and Localizations.AddString ) then
 					Localizations.AddString( key, value )
 				end
 			end
