@@ -1,5 +1,6 @@
--- Platform-specific module paths for the native Lua 5.4 runtime.
-local is64bit = ( #string.pack( "T", 0 ) == 8 )
+-- Platform-specific module paths for the shared Lua runtime.
+-- jit.arch: "x64" / "x86" / "arm" / "arm64" (the shared runtime provides it).
+local is64bit = ( jit != nil and jit.arch != nil and jit.arch != "x86" and jit.arch != "arm" )
 local suffix, binext
 if ( system.IsWindows() ) then
 	suffix, binext = ( is64bit and "win64" or "win32" ), ".dll"
