@@ -136,12 +136,10 @@ local enumsToMergeWithKey = {
 	MOVE_TYPE = "MOVETYPE",
 	OBSERVER_MODE = "OBS_MODE",
 	SOLID = "SOLID",
-	SOUND_CHANNEL = "CHAN",
 	SURFACE = "SURF",
 
 	DAMAGE_TYPE = {"DMG", stripUnderscores},
 	HIT_GROUP = {"HITGROUP", stripUnderscores},
-	MATERIAL_TYPE = {"MAT", stripUnderscores},
 }
 
 for enumKey, enumTargetKey in pairs(enumsToMergeWithKey) do
@@ -297,17 +295,6 @@ RENDERMODE_TRANSALPHADD = _E.RENDER_MODE.TRANSPARENT_ALPHA_ADD
 RENDERMODE_WORLDGLOW = _E.RENDER_MODE.WORLD_GLOW
 RENDERMODE_NONE = _E.RENDER_MODE.NONE
 
-PLAYER_IDLE = _E.PLAYER_ANIMATION.IDLE
-PLAYER_WALK = _E.PLAYER_ANIMATION.WALK
-PLAYER_JUMP = _E.PLAYER_ANIMATION.JUMP
-PLAYER_SUPERJUMP = _E.PLAYER_ANIMATION.SUPER_JUMP
-PLAYER_DIE = _E.PLAYER_ANIMATION.DIE
-PLAYER_ATTACK1 = _E.PLAYER_ANIMATION.ATTACK1
-PLAYER_IN_VEHICLE = _E.PLAYER_ANIMATION.IN_VEHICLE
-PLAYER_RELOAD = _E.PLAYER_ANIMATION.RELOAD
-PLAYER_START_AIMING = _E.PLAYER_ANIMATION.START_AIMING
-PLAYER_LEAVE_AIMING = _E.PLAYER_ANIMATION.LEAVE_AIMING
-
 HUD_PRINTNOTIFY = 1
 HUD_PRINTCONSOLE = 2
 HUD_PRINTTALK = 3
@@ -444,47 +431,27 @@ EF_NOFLASHLIGHT = 8192
 ---@enum EFL
 --- This entity is marked for death -- This allows the game to actually delete ents at a safe time.
 --- **WARNING**: You should never set this flag manually.
-EFL_KILLME = 1
 --- Entity is dormant, no updates to client
-EFL_DORMANT = 2
 --- Lets us know when the noclip command is active
-EFL_NOCLIP_ACTIVE = 4
 --- Set while a model is setting up its bones
-EFL_SETTING_UP_BONES = 8
 --- This is a special entity that should not be deleted when we respawn entities via [game.CleanUpMap](https://wiki.facepunch.com/gmod/game.CleanUpMap).
-EFL_KEEP_ON_RECREATE_ENTITIES = 16
 --- One of the child entities is a player
 EFL_HAS_PLAYER_CHILD = 16
 --- (Client only) need shadow manager to update the shadow
-EFL_DIRTY_SHADOWUPDATE = 32
 --- Another entity is watching events on this entity (used by teleport)
-EFL_NOTIFY = 64
 --- The default behavior in ShouldTransmit is to not send an entity if it doesn't have a model. Certain entities want to be sent anyway because all the drawing logic is in the client DLL. They can set this flag and the engine will transmit them even if they don't have model
-EFL_FORCE_CHECK_TRANSMIT = 128
 --- This is set on bots that are frozen
-EFL_BOT_FROZEN = 256
 --- Non-networked entity
-EFL_SERVER_ONLY = 512
 --- Don't attach the edict
-EFL_NO_AUTO_EDICT_ATTACH = 1024
 --- Some 'dirty' bits with respect to absolute computations. Used internally by the engine when an entity's absolute position needs to be recalculated.
-EFL_DIRTY_ABSTRANSFORM = 2048
 --- Some 'dirty' bits with respect to absolute computations. Used internally by the engine when an entity's absolute velocity needs to be recalculated.
-EFL_DIRTY_ABSVELOCITY = 4096
 --- Some 'dirty' bits with respect to absolute computations. Used internally by the engine when an entity's absolute angular velocity needs to be recalculated.
-EFL_DIRTY_ABSANGVELOCITY = 8192
 --- Marks the entity as having a 'dirty' surrounding box. Used internally by the engine to recompute the entity's collision bounds.
-EFL_DIRTY_SURROUNDING_COLLISION_BOUNDS = 16384
 --- Used internally by the engine when an entity's "spatial partition" needs to be recalculated.
-EFL_DIRTY_SPATIAL_PARTITION = 32768
 --- This is set if the entity detects that it's in the skybox. This forces it to pass the "in PVS" for transmission
-EFL_IN_SKYBOX = 131072
 --- Entities with this flag set show up in the partition even when not solid
-EFL_USE_PARTITION_WHEN_NOT_SOLID = 262144
 --- Used to determine if an entity is floating
-EFL_TOUCHING_FLUID = 524288
 --- The entity is currently being lifted by a Barnacle.
-EFL_IS_BEING_LIFTED_BY_BARNACLE = 1048576
 --- The entity is not affected by 'rotorwash push'--the wind-push effect caused by helicopters close to the ground in Half-Life 2.
 EFL_NO_ROTORWASH_PUSH = 2097152
 --- Avoid executing the entity's Think
