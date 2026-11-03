@@ -252,8 +252,8 @@ function OpenSavesDialog()
 	return Open()
 end
 
-concommand.Create( "OpenSavesDialog", function()
+concommand.Add( "OpenSavesDialog", function()
 	OpenSavesDialog()
-end, "Open the HL2SB saves dialog.", FCVAR_CLIENTDLL )
+end, nil, "Open the HL2SB saves dialog.", FCVAR_CLIENTDLL )
 
 Say( "savesdialog loaded" )

@@ -24,7 +24,3 @@ if ( CLIENT and surface and vgui ) then
 end
 
 include( "hl2sb/compat/shared.lua" )
-
-if ( CLIENT ) then
-	include( "hl2sb/compat/contextmenu.lua" )
-end

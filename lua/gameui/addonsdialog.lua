@@ -1023,14 +1023,14 @@ local function CloseAndOpen()
     return Open()
 end
 
-concommand.Create( "OpenAddonsDialog", function()
+concommand.Add( "OpenAddonsDialog", function()
     CloseAndOpen()
-end, "Open the HL2SB addon manager.", FCVAR_CLIENTDLL )
+end, nil, "Open the HL2SB addon manager.", FCVAR_CLIENTDLL )
 
 -- The GMod-style window is opt-in: the menu realm paints the plain controls
 -- reliably, while the derma one needs the whole stack (derma + vgui_base) to
 -- have loaded.  This switches and reopens.
-concommand.Create( "hl2sb_addons_derma", function()
+concommand.Add( "hl2sb_addons_derma", function()
     -- The derma stack is a client-realm feature; the menu realm has the engine
     -- controls only.  Say so instead of pretending the switch did something.
     if ( not ( derma and derma.DefineControl ) ) then
@@ -1042,12 +1042,12 @@ concommand.Create( "hl2sb_addons_derma", function()
     m_UseDerma = not m_UseDerma
     Say( "[HL2SB] addonsdialog: derma UI " .. ( m_UseDerma and "ON" or "OFF" ) )
     CloseAndOpen()
-end, "Toggle the GMod-style (derma) addon manager window.", FCVAR_CLIENTDLL )
+end, nil, "Toggle the GMod-style (derma) addon manager window.", FCVAR_CLIENTDLL )
 
 -- Manual override for the touch layout: cycles AUTO (follow the platform
 -- detection) -> FORCED ON -> FORCED OFF, reopening the dialog so the new
 -- mode applies immediately.
-concommand.Create( "hl2sb_addons_touch", function()
+concommand.Add( "hl2sb_addons_touch", function()
     TOUCH_MODE = ( TOUCH_MODE + 1 ) % 3
 
     local state
@@ -1061,4 +1061,4 @@ concommand.Create( "hl2sb_addons_touch", function()
     Say( "[HL2SB] addonsdialog: touch layout " .. state )
 
     CloseAndOpen()
-end, "Cycle the addon manager layout mode: auto, forced touch, forced desktop.", FCVAR_CLIENTDLL )
+end, nil, "Cycle the addon manager layout mode: auto, forced touch, forced desktop.", FCVAR_CLIENTDLL )

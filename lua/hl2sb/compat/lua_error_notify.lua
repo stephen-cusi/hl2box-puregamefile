@@ -9,8 +9,7 @@
     colours, phrases and timing are the reference values; errors arrive through
     the engine's GM:OnLuaError (see luamanager.cpp).
 
-    This is the on-screen notification only.  The fuller triage viewers stay
-    where they were (console hl2sb_errors; the main-menu Lua errors dialog).
+    Detailed errors remain available in the console.
 -----------------------------------------------------------------------------]]
 
 if ( not CLIENT ) then return end

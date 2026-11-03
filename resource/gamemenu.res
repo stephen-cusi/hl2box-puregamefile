@@ -66,11 +66,6 @@
 		"label" "#GameUI_GameMenu_Options"
 		"command" "OpenOptionsDialog"
 	}
-	"11"
-	{
-		"label" "#HL2SB_MainMenu_LuaErrors"
-		"command" "engine OpenLuaErrorsDialog"
-	}
 	"12"
 	{
 		"label" "#GameUI_GameMenu_Content"

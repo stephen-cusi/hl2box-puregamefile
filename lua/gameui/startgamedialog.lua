@@ -1051,11 +1051,11 @@ Open = function()
     return frame
 end
 
-concommand.Create( "OpenStartGameDialogLua", function()
+concommand.Add( "OpenStartGameDialogLua", function()
     Open()
-end, "Open the Lua start game dialog.", FCVAR_CLIENTDLL )
+end, nil, "Open the Lua start game dialog.", FCVAR_CLIENTDLL )
 
-concommand.Create( "hl2sb_startgame_touch", function()
+concommand.Add( "hl2sb_startgame_touch", function()
     TOUCH_MODE = ( TOUCH_MODE + 1 ) % 3
     if ( TOUCH_MODE == 0 ) then
         Say( "[HL2SB] startgame touch: auto (" .. ( TOUCH_AUTO and "android detected" or "desktop" ) .. ")" )
@@ -1064,4 +1064,4 @@ concommand.Create( "hl2sb_startgame_touch", function()
     else
         Say( "[HL2SB] startgame touch: forced OFF" )
     end
-end, "Cycle the start game dialog touch layout override.", FCVAR_CLIENTDLL )
+end, nil, "Cycle the start game dialog touch layout override.", FCVAR_CLIENTDLL )

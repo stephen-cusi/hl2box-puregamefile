@@ -153,13 +153,12 @@ function MENU.Open()
     return frame
 end
 
-concommand.Create( "OpenHL2SBMenu", MENU.Open, "Open the HL2SB main menu.", FCVAR_CLIENTDLL )
-concommand.Create( "hl2sb_menu", MENU.Open, "Alias of OpenHL2SBMenu.", FCVAR_CLIENTDLL )
+concommand.Add( "OpenHL2SBMenu", MENU.Open, nil, "Open the HL2SB main menu.", FCVAR_CLIENTDLL )
+concommand.Add( "hl2sb_menu", MENU.Open, nil, "Alias of OpenHL2SBMenu.", FCVAR_CLIENTDLL )
 
 -- ---------------------------------------------------------------------------
 -- pages shipped with the menu (each file registers itself)
 -- ---------------------------------------------------------------------------
-include( "menu/pages/_errors.lua" )
 include( "menu/pages/addons.lua" )
 include( "menu/pages/content.lua" )
 include( "menu/pages/saves.lua" )

@@ -68,4 +68,4 @@ local function OnOpenContentDialog()
 	end
 end
 
-concommand.Create( "OpenContentDialog", OnOpenContentDialog, "Open content dialog.", FCVAR_CLIENTDLL )
+concommand.Add( "OpenContentDialog", OnOpenContentDialog, nil, "Open content dialog.", FCVAR_CLIENTDLL )

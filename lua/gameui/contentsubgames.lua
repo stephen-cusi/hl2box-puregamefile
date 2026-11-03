@@ -425,7 +425,7 @@ vgui.register( CContentSubGames, "CContentSubGames", "PropertyPage" )
 -- Menu realm console command: reports the page as it is RIGHT NOW, which is the
 -- only way to see the numbers once the dialog has been up for a while (the two
 -- dumps above are written at build and at page-show time).
-concommand.Create( "hl2sb_contentdump", function()
+concommand.Add( "hl2sb_contentdump", function()
     m_bForceDump = true
 
     if ( m_Page ) then
@@ -438,4 +438,4 @@ concommand.Create( "hl2sb_contentdump", function()
     end
 
     m_bForceDump = false
-end, "Dump the Content dialog's Games page geometry.", FCVAR_CLIENTDLL )
+end, nil, "Dump the Content dialog's Games page geometry.", FCVAR_CLIENTDLL )

@@ -1,5 +1,4 @@
 -- Native font and panel compatibility, loaded before original Derma.
-include( "hl2sb/compat/drawing.lua" )
 
 local hl2sb_CustomFonts = {
 	-- family        file (relative to the game dir)

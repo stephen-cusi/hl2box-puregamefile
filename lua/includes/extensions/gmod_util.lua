@@ -11,7 +11,6 @@
       util.AddNetworkString( name )    -- records the name (HL2SB's `net` sends
                                           names inline, so this is bookkeeping)
       util.PrecacheModel / util.PrecacheSound  (only if not already bound)
-      concommand.Add( cmd, fn, canExecute, help, flags )  -> concommand.Create
       ent:CallOnRemove( id, fn, ... )  -- backed by the engine's EntityRemoved hook
       CurTime / UnPredictedCurTime     -- already in gmod_globals, re-exported for
                                           files that load before it
@@ -113,19 +112,6 @@ end
 if ( util.NetworkIDToString == nil ) then
 	function util.NetworkIDToString( id )
 		return util.NetworkStringIDs[ tonumber( id ) or -1 ]
-	end
-end
-
--- ===========================================================================
--- concommand.Add  (GMod signature: name, fn, canExecute, helpString, flags)
---   HL2SB's concommand.Create is ( name, fn, helpString, flags ) and already
---   invokes the callback as fn( ply, cmd, args ) -- the same shape GMod uses.
--- ===========================================================================
-
-if ( _G.concommand ~= nil and concommand.Add == nil ) then
-	function concommand.Add( cmd, fn, canExecute, helpString, flags )
-		-- canExecute is accepted and ignored: HL2SB has no per-command ACL hook.
-		return concommand.Create( cmd, fn, helpString, flags )
 	end
 end
 

@@ -77,7 +77,7 @@ function _R.HFontContainer:__tostring()
   return "HFontContainer: " .. self.index
 end
 
-hook.add( "OnScreenSizeChanged", "HFontContainerManager", function()
+hook.Add( "OnScreenSizeChanged", "HFontContainerManager", function()
   for i, fontcontainer in ipairs( HFontContainers ) do
     fontcontainer.font = CreateFont()
     SetFontGlyphSet( fontcontainer.font,
