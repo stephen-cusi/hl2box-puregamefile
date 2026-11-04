@@ -135,6 +135,9 @@ local enumsToMergeWithKey = {
 }
 
 for enumKey, enumTargetKey in pairs(enumsToMergeWithKey) do
+  if (enumKey == "CONTENTS" and not _GAMEUI and (CLIENT or SERVER)) then
+    continue
+  end
   if (not _E[enumKey]) then
     error("Missing enumeration table for key: " .. enumKey)
     continue
