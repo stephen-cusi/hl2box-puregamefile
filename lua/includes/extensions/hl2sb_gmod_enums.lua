@@ -320,10 +320,6 @@ if ( rawget( _G, "MATERIAL_CULLMODE_CW" ) == nil ) then MATERIAL_CULLMODE_CW = 1
 -- with the enum undefined the whole concommand died on a bad argument.
 ------------------------------------------------------------------------------
 
-if ( rawget( _G, "HUD_PRINTNOTIFY" ) == nil ) then HUD_PRINTNOTIFY = 1 end
-if ( rawget( _G, "HUD_PRINTCONSOLE" ) == nil ) then HUD_PRINTCONSOLE = 2 end
-if ( rawget( _G, "HUD_PRINTTALK" ) == nil ) then HUD_PRINTTALK = 3 end
-if ( rawget( _G, "HUD_PRINTCENTER" ) == nil ) then HUD_PRINTCENTER = 4 end
 
 ------------------------------------------------------------------------------
 -- More GMod global enum families (2026-10-07, hl1sweps full binding audit).
@@ -380,16 +376,8 @@ end
 -- SetRenderMode( RENDERMODE_GLOW ) + SetRenderFX( kRenderFxNoDissipation ).
 local _RM = rawget( _G, "RENDER_MODE" ) or _E.RENDER_MODE
 if ( _RM ~= nil ) then
-	if ( rawget( _G, "RENDERMODE_NORMAL" ) == nil ) then RENDERMODE_NORMAL = _RM.NORMAL end
-	if ( rawget( _G, "RENDERMODE_TRANSCOLOR" ) == nil ) then RENDERMODE_TRANSCOLOR = _RM.TRANSPARENT_COLOR end
-	if ( rawget( _G, "RENDERMODE_TRANSTEXTURE" ) == nil ) then RENDERMODE_TRANSTEXTURE = _RM.TRANSPARENT_TEXTURE end
-	if ( rawget( _G, "RENDERMODE_GLOW" ) == nil ) then RENDERMODE_GLOW = _RM.GLOW end
-	if ( rawget( _G, "RENDERMODE_TRANSALPHA" ) == nil ) then RENDERMODE_TRANSALPHA = _RM.TRANSPARENT_ALPHA end
-	if ( rawget( _G, "RENDERMODE_TRANSADD" ) == nil ) then RENDERMODE_TRANSADD = _RM.TRANSPARENT_ADD end
 	if ( rawget( _G, "RENDERMODE_ENVIRONMENTAL" ) == nil ) then RENDERMODE_ENVIRONMENTAL = _RM.ENVIRONMENTAL end
-	if ( rawget( _G, "RENDERMODE_TRANSADDFRAMEBLEND" ) == nil ) then RENDERMODE_TRANSADDFRAMEBLEND = _RM.TRANSPARENT_ADD_FRAME_BLEND end
 	if ( rawget( _G, "RENDERMODE_TRANSALPHAADD" ) == nil ) then RENDERMODE_TRANSALPHAADD = _RM.TRANSPARENT_ALPHA_ADD end
-	if ( rawget( _G, "RENDERMODE_WORLDGLOW" ) == nil ) then RENDERMODE_WORLDGLOW = _RM.WORLD_GLOW end
 	if ( rawget( _G, "kRenderNormal" ) == nil ) then kRenderNormal = _RM.NORMAL end
 	if ( rawget( _G, "kRenderTransColor" ) == nil ) then kRenderTransColor = _RM.TRANSPARENT_COLOR end
 	if ( rawget( _G, "kRenderTransTexture" ) == nil ) then kRenderTransTexture = _RM.TRANSPARENT_TEXTURE end
