@@ -88,6 +88,9 @@ local enumsToCopyToGlobal = {
 }
 
 for enumKey, modifier in pairs(enumsToCopyToGlobal) do
+    if ((enumKey == "BUTTON" or enumKey == "ACTIVITY") and not _GAMEUI and (CLIENT or SERVER)) then
+        continue
+    end
     if (not _E[enumKey]) then
         error("Missing enumeration table for key: " .. enumKey)
         continue
@@ -187,9 +190,11 @@ if (CLIENT or _GAMEUI) then
 	TOP = _E.DOCK_TYPE.TOP
 	BOTTOM = _E.DOCK_TYPE.BOTTOM
 
-	MOUSE_LEFT = _E.MOUSE.LEFT
-	MOUSE_RIGHT = _E.MOUSE.RIGHT
-	MOUSE_MIDDLE = _E.MOUSE.MIDDLE
+	if (_GAMEUI) then
+		MOUSE_LEFT = _E.MOUSE.LEFT
+		MOUSE_RIGHT = _E.MOUSE.RIGHT
+		MOUSE_MIDDLE = _E.MOUSE.MIDDLE
+	end
 
     if ( _GAMEUI ) then
     STENCILCOMPARISONFUNCTION_NEVER = _E.STENCIL_COMPARISON_FUNCTION.NEVER
