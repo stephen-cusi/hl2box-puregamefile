@@ -1,0 +1,17 @@
+return {
+    [ "hl2sb.menu.content" ] = { en = "Content", schinese = "内容", japanese = "コンテンツ" },
+    [ "hl2sb.menu.saves" ] = { en = "Saves", schinese = "存档", japanese = "セーブ" },
+    [ "hl2sb.menu.apply" ] = { en = "Apply", schinese = "应用", japanese = "適用" },
+    [ "hl2sb.menu.close" ] = { en = "Close", schinese = "关闭", japanese = "閉じる" },
+    [ "hl2sb.menu.refresh" ] = { en = "Refresh", schinese = "刷新", japanese = "更新" },
+    [ "hl2sb.menu.load" ] = { en = "Load", schinese = "读取", japanese = "読み込む" },
+    [ "hl2sb.menu.delete" ] = { en = "Delete", schinese = "删除", japanese = "削除" },
+    [ "hl2sb.menu.save" ] = { en = "Save map", schinese = "保存地图", japanese = "マップ保存" },
+    [ "hl2sb.menu.no_saves" ] = { en = "No local saves found.", schinese = "没有找到本地存档。", japanese = "ローカルセーブがありません。" },
+    [ "hl2sb.menu.no_games" ] = { en = "No installed content found.", schinese = "没有找到可挂载的游戏内容。", japanese = "利用可能なコンテンツがありません。" },
+    [ "hl2sb.menu.restart" ] = { en = "Saved. Restart to apply content changes.", schinese = "已保存，重启后应用内容更改。", japanese = "保存しました。再起動後に反映されます。" },
+    [ "hl2sb.menu.write_failed" ] = { en = "Could not write gamecontent.txt.", schinese = "无法写入 gamecontent.txt。", japanese = "gamecontent.txt を書き込めません。" },
+    [ "hl2sb.menu.save_sent" ] = { en = "Save requested. Refresh after it completes.", schinese = "已请求保存，完成后请刷新。", japanese = "保存を要求しました。完了後に更新してください。" },
+    [ "hl2sb.menu.load_sent" ] = { en = "Load requested.", schinese = "已请求读取。", japanese = "読み込みを要求しました。" },
+    [ "hl2sb.menu.invalid_name" ] = { en = "Use letters, numbers, underscore or hyphen.", schinese = "名称只能包含英文字母、数字、下划线或连字符。", japanese = "名前は英数字、アンダースコア、ハイフンを使用してください。" },
+}

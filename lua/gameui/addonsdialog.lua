@@ -23,12 +23,11 @@
                         with a 20px font, and the scrollbar strip is 24px wide
                         and drag-scrollable (mouse capture keeps the drag alive
                         outside the strip - a phone has no wheel).
-                        `hl2sb_addons_touch` cycles a manual override:
-                        auto (follow the detection) -> forced on -> forced off.
+                        `hl2sb_addons_touch` selects automatic, touch or desktop
+                        layout (0, 1 or 2).
 
-      DERMA  (opt-in)   the GMod-style window (DFrame/DScrollPanel/
-                        DCheckBoxLabel).  Available with the console command
-                        `hl2sb_addons_derma`, which toggles it and reopens.
+      DERMA  (default)  the GMod-style window (DFrame/DScrollPanel/
+                        DCheckBoxLabel). `hl2sb_addons_derma` switches views.
 
     Scrolling in the menu realm
     ---------------------------
@@ -77,31 +76,26 @@ MOUSE_RIGHT = MOUSE_RIGHT or ( _E and _E.MOUSE_RIGHT ) or 108
 -- convar uses (system.IsAndroid(); never IsLinux - that is also true on
 -- desktop).  The menu realm opens the Systems lib for exactly this
 -- (luasrc_init_gameui); without it the desktop layout runs.
--- `hl2sb_addons_touch` cycles a manual override on top of the detection:
--- auto -> forced on -> forced off -> auto.
-local TOUCH_AUTO = ( system and system.IsAndroid and system.IsAndroid() ) and true or false
-local TOUCH_MODE = 0    -- 0 = follow the detection, 1 = force touch, 2 = force desktop
+-- A value of 0 follows the platform; 1 forces touch and 2 forces desktop.
+local menuUI = include( "hl2sb/menu/ui.lua" )
 
 local function TouchUI()
-    return ( TOUCH_MODE == 1 ) or ( TOUCH_MODE == 0 and TOUCH_AUTO )
+    return menuUI.IsTouch()
 end
 
+local phrases = include( "hl2sb/localization/addons.lua" )
+if ( language and language.AddTable and istable( phrases ) ) then language.AddTable( phrases ) end
+local function Phrase( key )
+    local token = "hl2sb.addons." .. key
+    return language and language.GetPhrase and language.GetPhrase( token ) or token
+end
 local STR = {
-    Title      = "插件管理",
-    Hint       = "取消勾选的插件不会被挂载。修改立即生效；已进入地图时则在下次启动生效。",
-    Hint2      = "滚轮滚动列表，点击行看信息",
-    Empty      = "addons/ 目录中没有找到插件",
-    Stats      = "共 %d 个插件，已启用 %d 个",
-    StatsTouch = "，点击行看信息卡",
-    EnableAll  = "启用全部",
-    DisableAll = "禁用全部",
-    Refresh    = "刷新",
-    Close      = "关闭",
-    Filter     = "筛选",
-    NoDesc     = "（没有描述信息）",
-    CardEmpty  = "点击左侧的插件行，在这里显示插件信息。",
-    AppliedNow     = "已立即生效",
-    AppliedRestart = "已在地图中：已保存，下次启动生效",
+    Title = Phrase( "title" ), Hint = Phrase( "hint" ), Hint2 = Phrase( "hint_details" ),
+    Empty = Phrase( "empty" ), Stats = Phrase( "stats" ), StatsTouch = Phrase( "stats_touch" ),
+    EnableAll = Phrase( "enable_all" ), DisableAll = Phrase( "disable_all" ),
+    Refresh = Phrase( "refresh" ), Close = Phrase( "close" ), Filter = Phrase( "filter" ),
+    NoDesc = Phrase( "no_description" ), CardEmpty = Phrase( "no_selection" ),
+    AppliedNow = Phrase( "applied_now" ), AppliedRestart = Phrase( "applied_restart" ),
 }
 
 -- ---------------------------------------------------------------------------
@@ -179,7 +173,9 @@ local DIALOG_W  = 680                  -- desktop window width (touch fills the 
 local m_Frame        = nil
 local m_Filter       = ""
 local m_Status       = nil
-local m_UseDerma     = false        -- opt-in: hl2sb_addons_derma
+local m_UseDerma     = true
+local m_WindowX      = nil
+local m_WindowY      = nil
 
 -- ---------------------------------------------------------------------------
 -- the addons
@@ -425,6 +421,7 @@ end
 --     hl2sb\lua\gameui\addonsdialog.lua:431: attempt to call a nil value (global 'Open')
 -- Declaring it here and assigning later (see "Open = function()" below) fixes the scoping.
 local Open
+local Reopen
 
 local function OpenPlain()
     -- effective layout mode for THIS open - the override command may have
@@ -453,6 +450,7 @@ local function OpenPlain()
     frame:SetTitle( STR.Title )
     frame:SetSize( DIALOG_W, 480 )
     frame:MoveToCenterOfScreen()
+    if ( m_WindowX and m_WindowY ) then frame:SetPos( m_WindowX, m_WindowY ) end
 
     local addons = DedupeList( ListAddons() )
     local disabled = ReadDisabled()
@@ -798,12 +796,6 @@ local function OpenPlain()
         if ( type( self ) == "string" ) then cmd = self end
         if ( not cmd ) then return end
 
-        local function Reopen()
-            if ( m_Frame and m_Frame.Close ) then m_Frame:Close() end
-            m_Frame = nil
-            Open()
-        end
-
         if ( cmd == "Close" ) then
             frame:Close()
             m_Frame = nil
@@ -811,6 +803,8 @@ local function OpenPlain()
             m_Filter = ( search and search:GetValue() ) or ""
             Reopen()
         elseif ( cmd == "refresh" ) then
+            m_GmaInfo = {}
+            m_JsonInfo = {}
             Reopen()
         elseif ( cmd == "enableall" or cmd == "disableall" ) then
             local want = ( cmd == "enableall" )
@@ -870,11 +864,20 @@ local function OpenPlain()
 end
 
 -- ---------------------------------------------------------------------------
--- DERMA front end (opt-in): the GMod-style window
+-- DERMA front end
 -- ---------------------------------------------------------------------------
 
 local function OpenDerma()
-    local frame = vgui.Create( "DFrame" )
+    local touch = TouchUI()
+    local screenW, screenH = ScrW(), ScrH()
+    local width = math.max( 1, math.min( touch and 720 or 480, screenW - 16 ) )
+    local height = math.max( 1, math.min( touch and screenH - 16 or 620, screenH - 16 ) )
+    local margin = touch and 12 or 10
+    local rowHeight = touch and 44 or ROW_H
+    local buttonHeight = touch and 42 or 26
+    local font = touch and FONT_TOUCH or FONT_TEXT
+    local parent = VGui_GetGameUIPanel and VGui_GetGameUIPanel() or nil
+    local frame = vgui.Create( "DFrame", parent )
     if ( not frame ) then return nil end
 
     m_Frame = frame
@@ -890,81 +893,106 @@ local function OpenDerma()
     end
 
     frame:SetTitle( STR.Title )
-    frame:SetSize( 480, 620 )
-    frame:SetPos( math.max( 0, ( ScrW() - 480 ) / 2 ), math.max( 0, ( ScrH() - 620 ) / 2 ) )
+    frame:SetSize( width, height )
+    frame:SetPos( math.Clamp( m_WindowX or ( screenW - width ) / 2, 0, math.max( 0, screenW - width ) ), math.Clamp( m_WindowY or ( screenH - height ) / 2, 0, math.max( 0, screenH - height ) ) )
     frame:SetSizable( false )
     frame:SetDeleteOnClose( true )
     frame:MakePopup()
 
     local hint = vgui.Create( "DLabel", frame )
+    ApplyFont( hint, font )
     hint:SetText( STR.Hint )
-    hint:SetPos( 10, 30 )
-    hint:SetSize( 460, 34 )
+    hint:SetPos( margin, 30 )
+    hint:SetSize( width - margin * 2, touch and 55 or 34 )
     hint:SetWrap( true )
 
     local search = vgui.Create( "DTextEntry", frame )
-    search:SetPos( 10, 66 )
-    search:SetSize( 250, 22 )
+    local searchY = touch and 89 or 66
+    local searchHeight = touch and 40 or 22
+    local filterWidth = touch and 100 or 70
+    ApplyFont( search, font )
+    search:SetPos( margin, searchY )
+    search:SetSize( width - margin * 2 - filterWidth - 8, searchHeight )
     search:SetText( m_Filter or "" )
 
     local filterBtn = vgui.Create( "DButton", frame )
+    ApplyFont( filterBtn, font )
     filterBtn:SetText( STR.Filter )
-    filterBtn:SetPos( 268, 66 )
-    filterBtn:SetSize( 70, 22 )
+    filterBtn:SetPos( width - margin - filterWidth, searchY )
+    filterBtn:SetSize( filterWidth, searchHeight )
     filterBtn.DoClick = function()
         m_Filter = ( search and search:GetValue() ) or ""
-        if ( m_Frame and m_Frame.Close ) then m_Frame:Close() end
-        m_Frame = nil
-        Open()
+        Reopen()
     end
 
     local stats = vgui.Create( "DLabel", frame )
-    stats:SetPos( 10, 94 )
-    stats:SetSize( 460, 16 )
-    stats:SetText( string.format( "共 %d 个插件，已启用 %d 个", #addons, enabledCount ) )
+    ApplyFont( stats, font )
+    local statsY = searchY + searchHeight + 5
+    local statsHeight = touch and 28 or 20
+    stats:SetPos( margin, statsY )
+    stats:SetSize( width - margin * 2, statsHeight )
+    stats:SetText( string.format( STR.Stats, #addons, enabledCount ) )
 
     local sheet = vgui.Create( "DScrollPanel", frame )
-    sheet:SetPos( 10, 114 )
-    sheet:SetSize( 460, 620 - 114 - 74 )
+    local listY = statsY + statsHeight + 3
+    local barY = height - margin - buttonHeight
+    local statusHeight = touch and 28 or 20
+    local statusY = barY - statusHeight - 4
+    sheet:SetPos( margin, listY )
+    sheet:SetSize( width - margin * 2, math.max( 1, statusY - listY - 4 ) )
+    if ( touch and sheet:GetVBar() ) then sheet:GetVBar():SetWide( 32 ) end
 
     local canvas = sheet:GetCanvas()
     local y = 2
     for i = 1, #rows do
         local entry = rows[ i ]
         local row = vgui.Create( "DCheckBoxLabel", canvas )
+        ApplyFont( row, font )
         row:SetText( DisplayName( entry ) )
-        if ( entry.desc and entry.desc != "" and row.SetTooltip ) then
-            row:SetTooltip( entry.desc )
-        end
         row:SetPos( 6, y )
-        row:SetSize( 430, ROW_H )
+        row:SetSize( math.max( 1, width - margin * 2 - ( touch and 44 or 28 ) ), rowHeight )
+        if ( touch ) then
+            row.PerformLayout = function( pnl )
+                pnl.Button:SetSize( 32, 32 )
+                pnl.Button:SetPos( 0, math.floor( ( pnl:GetTall() - 32 ) / 2 ) )
+                pnl.Label:SizeToContents()
+                pnl.Label:SetPos( 40, math.floor( ( pnl:GetTall() - pnl.Label:GetTall() ) / 2 ) )
+            end
+        end
         row:SetChecked( not disabled[ entry.key ] )
         row.OnChange = function( pnl, checked )
             Status( SetEnabled( entry.key, checked ) )
+            if ( disabled[ entry.key ] and checked ) then enabledCount = enabledCount + 1 end
+            if ( not disabled[ entry.key ] and not checked ) then enabledCount = enabledCount - 1 end
+            disabled[ entry.key ] = not checked
+            stats:SetText( string.format( STR.Stats, #addons, enabledCount ) )
         end
-        y = y + ROW_H
+        y = y + rowHeight
     end
 
     if ( #rows == 0 ) then
         local empty = vgui.Create( "DLabel", canvas )
+        ApplyFont( empty, font )
         empty:SetText( STR.Empty )
         empty:SetPos( 6, 4 )
-        empty:SetSize( 430, 16 )
+        empty:SetSize( width - margin * 2 - 20, statsHeight )
         y = y + 20
     end
 
     canvas:SetTall( math.max( y, sheet:GetTall() ) )
-    sheet:SetContentHeight( y + 4 )
 
     m_Status = vgui.Create( "DLabel", frame )
-    m_Status:SetPos( 10, 620 - 58 )
-    m_Status:SetSize( 460, 16 )
+    ApplyFont( m_Status, font )
+    m_Status:SetPos( margin, statusY )
+    m_Status:SetSize( width - margin * 2, statusHeight )
 
-    local function BarButton( text, x, w, cmd )
+    local function BarButton( text, index, cmd )
         local btn = vgui.Create( "DButton", frame )
+        ApplyFont( btn, font )
         btn:SetText( text )
-        btn:SetPos( x, 620 - 36 )
-        btn:SetSize( w, 26 )
+        local buttonWidth = math.floor( ( width - margin * 2 - 18 ) / 4 )
+        btn:SetPos( margin + ( index - 1 ) * ( buttonWidth + 6 ), barY )
+        btn:SetSize( buttonWidth, buttonHeight )
         btn.DoClick = function()
             if ( cmd == "close" ) then
                 frame:Close()
@@ -975,23 +1003,24 @@ local function OpenDerma()
             if ( cmd == "enableall" or cmd == "disableall" ) then
                 local want = ( cmd == "enableall" )
                 local applied = true
-                for _, entry in ipairs( rows ) do
+                for _, entry in ipairs( addons ) do
                     if ( not SetEnabled( entry.key, want ) ) then applied = false end
                 end
                 Status( applied )
             end
 
-            if ( m_Frame and m_Frame.Close ) then m_Frame:Close() end
-            m_Frame = nil
-            Open()
+            if ( cmd == "refresh" ) then m_GmaInfo = {} m_JsonInfo = {} end
+            Reopen()
         end
         return btn
     end
 
-    BarButton( STR.EnableAll, 10, 100, "enableall" )
-    BarButton( STR.DisableAll, 118, 100, "disableall" )
-    BarButton( STR.Refresh, 226, 76, "refresh" )
-    BarButton( STR.Close, 370, 100, "close" )
+    BarButton( STR.EnableAll, 1, "enableall" )
+    BarButton( STR.DisableAll, 2, "disableall" )
+    BarButton( STR.Refresh, 3, "refresh" )
+    BarButton( STR.Close, 4, "close" )
+
+    if ( HL2SB_MenuLayout ) then HL2SB_MenuLayout( frame ) end
 
     return frame
 end
@@ -1007,6 +1036,8 @@ Open = function()
         local ok, frame = pcall( OpenDerma )
         if ( ok and frame ) then return frame end
         Say( "[HL2SB] addonsdialog: derma UI failed (" .. tostring( frame ) .. ") - using the plain one" )
+        if ( m_Frame and m_Frame.Remove ) then m_Frame:Remove() end
+        m_Frame = nil
     end
 
     local ok2, frame2 = pcall( OpenPlain )
@@ -1017,48 +1048,28 @@ Open = function()
     return frame2
 end
 
-local function CloseAndOpen()
+Reopen = function()
+    if ( m_Frame and m_Frame.GetPos ) then m_WindowX, m_WindowY = m_Frame:GetPos() end
     if ( m_Frame and m_Frame.Close ) then m_Frame:Close() end
     m_Frame = nil
     return Open()
 end
 
 concommand.Add( "OpenAddonsDialog", function()
-    CloseAndOpen()
+    Reopen()
 end, nil, "Open the HL2SB addon manager.", FCVAR_CLIENTDLL )
 
--- The GMod-style window is opt-in: the menu realm paints the plain controls
--- reliably, while the derma one needs the whole stack (derma + vgui_base) to
--- have loaded.  This switches and reopens.
+-- Switch between the Derma and native control views.
 concommand.Add( "hl2sb_addons_derma", function()
     -- The derma stack is a client-realm feature; the menu realm has the engine
     -- controls only.  Say so instead of pretending the switch did something.
     if ( not ( derma and derma.DefineControl ) ) then
         Say( "[HL2SB] addonsdialog: derma is not loaded in the main menu - the plain UI is the only one available here" )
-        CloseAndOpen()
+        Reopen()
         return
     end
 
     m_UseDerma = not m_UseDerma
     Say( "[HL2SB] addonsdialog: derma UI " .. ( m_UseDerma and "ON" or "OFF" ) )
-    CloseAndOpen()
+    Reopen()
 end, nil, "Toggle the GMod-style (derma) addon manager window.", FCVAR_CLIENTDLL )
-
--- Manual override for the touch layout: cycles AUTO (follow the platform
--- detection) -> FORCED ON -> FORCED OFF, reopening the dialog so the new
--- mode applies immediately.
-concommand.Add( "hl2sb_addons_touch", function()
-    TOUCH_MODE = ( TOUCH_MODE + 1 ) % 3
-
-    local state
-    if ( TOUCH_MODE == 0 ) then
-        state = "AUTO (" .. ( TOUCH_AUTO and "android detected" or "desktop detected" ) .. ")"
-    elseif ( TOUCH_MODE == 1 ) then
-        state = "FORCED ON"
-    else
-        state = "FORCED OFF"
-    end
-    Say( "[HL2SB] addonsdialog: touch layout " .. state )
-
-    CloseAndOpen()
-end, nil, "Cycle the addon manager layout mode: auto, forced touch, forced desktop.", FCVAR_CLIENTDLL )

@@ -1,0 +1,17 @@
+return {
+    [ "hl2sb.addons.title" ] = { en = "Addons", schinese = "插件管理", japanese = "アドオン管理" },
+    [ "hl2sb.addons.hint" ] = { en = "Disabled addons are not mounted. Changes apply immediately unless a map is running.", schinese = "取消勾选的插件不会被挂载。修改立即生效；已进入地图时则在下次启动生效。", japanese = "無効なアドオンは読み込まれません。マップ実行中の変更は次回起動時に反映されます。" },
+    [ "hl2sb.addons.hint_details" ] = { en = "Scroll the list and select an addon for details.", schinese = "滚动列表，点击插件查看信息。", japanese = "一覧からアドオンを選択して詳細を表示します。" },
+    [ "hl2sb.addons.empty" ] = { en = "No addons found in addons/.", schinese = "addons/ 目录中没有找到插件", japanese = "アドオンが見つかりません。" },
+    [ "hl2sb.addons.stats" ] = { en = "%d addons, %d enabled", schinese = "共 %d 个插件，已启用 %d 个", japanese = "%d 件中 %d 件が有効" },
+    [ "hl2sb.addons.stats_touch" ] = { en = ", select an addon for details", schinese = "，点击行看信息卡", japanese = "、選択して詳細を表示" },
+    [ "hl2sb.addons.enable_all" ] = { en = "Enable all", schinese = "启用全部", japanese = "全て有効" },
+    [ "hl2sb.addons.disable_all" ] = { en = "Disable all", schinese = "禁用全部", japanese = "全て無効" },
+    [ "hl2sb.addons.refresh" ] = { en = "Refresh", schinese = "刷新", japanese = "更新" },
+    [ "hl2sb.addons.close" ] = { en = "Close", schinese = "关闭", japanese = "閉じる" },
+    [ "hl2sb.addons.filter" ] = { en = "Filter", schinese = "筛选", japanese = "検索" },
+    [ "hl2sb.addons.no_description" ] = { en = "No local description", schinese = "没有本地描述信息", japanese = "説明がありません" },
+    [ "hl2sb.addons.no_selection" ] = { en = "Select an addon to see its details.", schinese = "点击左侧的插件行，在这里显示插件信息。", japanese = "アドオンを選択して詳細を表示します。" },
+    [ "hl2sb.addons.applied_now" ] = { en = "Applied", schinese = "已立即生效", japanese = "適用しました" },
+    [ "hl2sb.addons.applied_restart" ] = { en = "Saved; restart to apply", schinese = "已保存，下次启动生效", japanese = "保存しました。再起動後に反映されます。" },
+}
