@@ -626,12 +626,6 @@ event WeaponUsesSecondaryAmmo
 	//Animate HudAmmoSecondary	FgColor		"FgColorHud"		Linear	0.2		1.5
 	Animate HudAmmoSecondary	Alpha		255		Linear	0.0		0.1
 
-	// HL2SB: 我们的 hud_ammo.cpp 是老版本，这个事件负责把 HudAmmo 挪开给
-	// HudAmmoSecondary 让位；GMod 的代码改 fire WeaponUsesClipsAndSecondaryAmmo 了。
-	StopAnimation 	HudAmmo Position 0.0
-	StopAnimation 	HudAmmo Size 0.0
-	Animate HudAmmo		Position	"r222 432"	Deaccel	0.0		0.5
-	Animate HudAmmo		Size		"132 36"	Deaccel	0.0		0.4
 }
 
 // GMOD: Secondary ammo clips
