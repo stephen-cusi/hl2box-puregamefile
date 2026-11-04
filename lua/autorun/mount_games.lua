@@ -12,19 +12,35 @@ local AppIdToFolder =
 {
     [220] = "hl2",
     [320] = "hl2mp",
-    [380] = "hl2client",
+    [380] = "episodic",
     [420] = "ep2",
     [400] = "portal",
     [240] = "cstrike",
     [300] = "dod",
     [280] = "hl1",
-    [360] = "hldeathmatch",
+    [360] = "hl1mp",
+    [340] = "lostcoast",
     [440] = "tf",
 }
 
 local function MountGameApps()
     local f = io.open( FILE_PATH, "r" )
     if ( not f ) then return end
+
+    if ( engine.GetContentSources and engine.MountContentSource ) then
+        local selected = {}
+        for line in f:lines() do
+            local id = tonumber( line:match( "^%s*(%d+)%s*$" ) )
+            if ( id ) then selected[id] = true end
+        end
+        f:close()
+        for _, source in ipairs( engine.GetContentSources() or {} ) do
+            if ( selected[source.appId] ) then
+                engine.MountContentSource( source.path )
+            end
+        end
+        return
+    end
 
     local parentDir = engine.GetGameDirectory():match( "^(.*)[/\\][^/\\]+$" ) or ""
     local mounted = 0
@@ -43,8 +59,11 @@ local function MountGameApps()
             if ( file.Exists( folder .. "/gameinfo.txt", "BASE_PATH" ) ) then
                 filesystem.AddSearchPath( path .. "/", "GAME", PATH_ADD_TO_TAIL )
                 local vpkFiles = file.Find( folder .. "/*.vpk", "BASE_PATH" )
+                table.sort( vpkFiles or {} )
                 for _, vpk in ipairs( vpkFiles or {} ) do
-                    filesystem.AddSearchPath( path .. "/" .. vpk, "GAME", PATH_ADD_TO_TAIL )
+                    if ( not vpk:lower():match( "_%d%d%d%.vpk$" ) ) then
+                        filesystem.AddSearchPath( path .. "/" .. vpk, "GAME", PATH_ADD_TO_TAIL )
+                    end
                 end
                 Msg( "[HL2SB] Mounted " .. folder .. " (appid " .. id .. ")\n" )
                 mounted = mounted + 1
@@ -63,4 +82,6 @@ local function MountGameApps()
     end
 end
 
-timer.Simple( 0, MountGameApps )
+if ( not engine.GetContentSources or not engine.MountContentSource ) then
+    timer.Simple( 0, MountGameApps )
+end

@@ -6,13 +6,13 @@ local frame
 local function ReadSelected()
     local selected = {}
     local f = io.open( engine.GetGameDirectory() .. "/gamecontent.txt", "r" )
-    if ( not f ) then return selected end
+    if ( not f ) then return selected, false end
     for line in f:lines() do
-        local id = tonumber( line:match( "%s*(%d+)%s*" ) )
-        if ( id ) then selected[ id ] = true end
+        local value = line:match( "^%s*(.-)%s*$" )
+        if ( value and value ~= "" and value:sub( 1, 1 ) ~= "#" ) then selected[ tonumber( value ) or value:lower() ] = true end
     end
     f:close()
-    return selected
+    return selected, true
 end
 
 local function Open()
@@ -28,11 +28,13 @@ local function Open()
     status:SetPos( margin, statusY )
     status:SetSize( w - margin * 2, 25 )
     status:SetText( "" )
-    local selected = ReadSelected()
+    local selected, hasSelection = ReadSelected()
     local games = HL2SB_DetectSourceGames and HL2SB_DetectSourceGames() or {}
+    local checks = {}
     local y = 0
     for _, game in ipairs( games ) do
         local id = tonumber( game.appId ) or 0
+        local folder = tostring( game.folder or "" ):lower()
         local row = vgui.Create( "DCheckBoxLabel", canvas )
         UI.Font( row, touch )
         row:SetText( tostring( game.name or game.folder or "" ) )
@@ -46,9 +48,9 @@ local function Open()
                 pnl.Label:SetPos( 40, math.floor( ( pnl:GetTall() - pnl.Label:GetTall() ) / 2 ) )
             end
         end
-        row:SetChecked( selected[ id ] and true or false )
-        if ( id <= 0 ) then row:SetEnabled( false ) end
-        row.OnChange = function( _, checked ) if ( id > 0 ) then selected[ id ] = checked and true or nil end end
+        row:SetChecked( selected[ folder ] or selected[ id ] or ( not hasSelection and game.mounted ) or false )
+        if ( folder == "" ) then row:SetEnabled( false ) end
+        checks[ #checks + 1 ] = { row = row, folder = folder }
         y = y + rowHeight
     end
     if ( #games == 0 ) then
@@ -62,13 +64,23 @@ local function Open()
     UI.Button( frame, UI.Phrase( "apply" ), margin, h - margin - buttonHeight, buttonWidth, buttonHeight, touch, function()
         local f = io.open( engine.GetGameDirectory() .. "/gamecontent.txt", "w" )
         if ( not f ) then status:SetText( UI.Phrase( "write_failed" ) ) return end
-        local ids = {}
-        for id, enabled in pairs( selected ) do if ( enabled ) then ids[ #ids + 1 ] = id end end
-        table.sort( ids )
+        local folders = {}
+        for _, item in ipairs( checks ) do
+            if ( item.folder ~= "" and item.row:GetChecked() ) then folders[ #folders + 1 ] = item.folder end
+        end
+        table.sort( folders )
         local ok = true
-        for _, id in ipairs( ids ) do if ( not f:write( tostring( id ), "\n" ) ) then ok = false break end end
+        for _, folder in ipairs( folders ) do if ( not f:write( folder, "\n" ) ) then ok = false break end end
         if ( not f:close() ) then ok = false end
-        status:SetText( UI.Phrase( ok and "restart" or "write_failed" ) )
+        if ( ok and engine.SetContentMounted ) then
+            local allApplied = true
+            for _, item in ipairs( checks ) do
+                if ( item.folder ~= "" and not engine.SetContentMounted( item.folder, item.row:GetChecked() ) ) then allApplied = false end
+            end
+            status:SetText( UI.Phrase( allApplied and "content_applied" or "content_fixed" ) )
+        else
+            status:SetText( UI.Phrase( ok and "restart" or "write_failed" ) )
+        end
     end )
     UI.Button( frame, UI.Phrase( "close" ), w - margin - buttonWidth, h - margin - buttonHeight, buttonWidth, buttonHeight, touch, function() frame:Close() frame = nil end )
     UI.Layout( frame )

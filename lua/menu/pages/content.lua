@@ -3,8 +3,7 @@
 
     Same persistence as the legacy page it replaces (lua/gameui/contentsubgames.lua):
       * detection : global HL2SB_DetectSourceGames()  (lua/autorun/detect_source_games.lua)
-      * selection : <gamedir>/gamecontent.txt - one AppId per line, written on 应用,
-                    read by the mount loader on the next start.
+      * selection : <gamedir>/gamecontent.txt - one content folder per line.
 
     Layout per spec: no absolute coordinates - a scrollable list Docked FILL, a bottom bar
     Docked BOTTOM, and MENU.Layout() at the end (the engine pass).
@@ -16,22 +15,22 @@ local function ReadSelected()
     local selected = {}
     local f = io.open( engine.GetGameDirectory() .. "/gamecontent.txt", "r" )
 
-    if ( f == nil ) then return selected end
+    if ( f == nil ) then return selected, false end
 
     for line in f:lines() do
-        local id = tonumber( (line or ""):match( "^%s*(%-?%d+)%s*$" ) )
-        if ( id ~= nil ) then selected[ id ] = true end
+        local value = (line or ""):match( "^%s*(.-)%s*$" )
+        if ( value and value ~= "" and value:sub( 1, 1 ) ~= "#" ) then selected[ tonumber( value ) or value:lower() ] = true end
     end
 
     f:close()
-    return selected
+    return selected, true
 end
 
 local function WriteSelected( ids )
     local f = io.open( engine.GetGameDirectory() .. "/gamecontent.txt", "w" )
     if ( f == nil ) then return false end
 
-    f:write( "# HL2SB: sibling Source games to mount. One AppId per line.\n" )
+    f:write( "# Content folders to mount, one per line.\n" )
     for _, id in ipairs( ids ) do f:write( tostring( id ), "\n" ) end
     f:close()
 
@@ -47,7 +46,7 @@ MENU.Register( {
             games = _G.HL2SB_DetectSourceGames() or {}
         end
 
-        local selected = ReadSelected()
+        local selected, hasSelection = ReadSelected()
         local checks = {}
 
         local list = vgui.Panel( parent, "hl2sb_menu_contentlist" )
@@ -86,9 +85,9 @@ MENU.Register( {
             if ( cb ~= nil ) then
                 cb:Dock( 1 )   -- DOCK_TOP
                 cb:SetTall( 26 )
-                cb:SetSelected( selected[ id ] == true )
+                cb:SetSelected( selected[ folder:lower() ] or selected[ id ] or ( not hasSelection and game.mounted ) or false )
                 MENU.UseFont( cb )
-                checks[ #checks + 1 ] = { panel = cb, id = id }
+                checks[ #checks + 1 ] = { panel = cb, id = id, folder = folder:lower() }
             end
         end
 
@@ -119,14 +118,19 @@ MENU.Register( {
                 local ids = {}
 
                 for _, entry in ipairs( checks ) do
-                    if ( entry.panel.IsChecked ~= nil and entry.panel:IsChecked() and entry.id ~= 0 ) then
-                        ids[ #ids + 1 ] = entry.id
+                    if ( entry.panel.IsChecked ~= nil and entry.panel:IsChecked() and entry.folder ~= "" ) then
+                        ids[ #ids + 1 ] = entry.folder
                     end
                 end
 
                 if ( WriteSelected( ids ) ) then
-                    if ( status ~= nil ) then status:SetText( "已保存 gamecontent.txt - 下次启动生效。" ) end
-                    Msg( "[HL2SB] gamecontent.txt saved (" .. tostring( #ids ) .. " game(s)); restart to apply mounts\n" )
+                    local applied = engine.SetContentMounted ~= nil
+                    if ( applied ) then
+                        for _, entry in ipairs( checks ) do
+                            if ( entry.folder ~= "" and not engine.SetContentMounted( entry.folder, entry.panel:IsChecked() ) ) then applied = false end
+                        end
+                    end
+                    if ( status ~= nil ) then status:SetText( applied and "已应用；如有缓存请重新进入地图。" or "部分内容为固定挂载或无法更改。" ) end
                 elseif ( status ~= nil ) then
                     status:SetText( "写 gamecontent.txt 失败。" )
                 end

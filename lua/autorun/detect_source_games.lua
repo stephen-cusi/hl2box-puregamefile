@@ -85,6 +85,20 @@ local function DetectInstalledGames()
         end
     end
 
+    if ( engine.GetContentSources ) then
+        for _, source in ipairs( engine.GetContentSources() or {} ) do
+            local duplicate = false
+            for _, existing in ipairs( found ) do
+                if ( existing.folder:lower() == source.folder:lower() ) then
+                    existing.mounted = existing.mounted or source.mounted
+                    duplicate = true
+                    break
+                end
+            end
+            if ( not duplicate ) then table.insert( found, source ) end
+        end
+    end
+
     info.found = #found
     table.sort( found, function( a, b ) return a.name:lower() < b.name:lower() end )
     return found

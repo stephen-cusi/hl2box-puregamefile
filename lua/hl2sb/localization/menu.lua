@@ -10,6 +10,8 @@ return {
     [ "hl2sb.menu.no_saves" ] = { en = "No local saves found.", schinese = "没有找到本地存档。", japanese = "ローカルセーブがありません。" },
     [ "hl2sb.menu.no_games" ] = { en = "No installed content found.", schinese = "没有找到可挂载的游戏内容。", japanese = "利用可能なコンテンツがありません。" },
     [ "hl2sb.menu.restart" ] = { en = "Saved. Restart to apply content changes.", schinese = "已保存，重启后应用内容更改。", japanese = "保存しました。再起動後に反映されます。" },
+    [ "hl2sb.menu.content_applied" ] = { en = "Applied. Reload the map if assets were cached.", schinese = "已应用。若资源仍未刷新，请重新进入地图。" },
+    [ "hl2sb.menu.content_fixed" ] = { en = "Some content is required or could not be changed.", schinese = "部分内容为固定挂载或无法更改。" },
     [ "hl2sb.menu.write_failed" ] = { en = "Could not write gamecontent.txt.", schinese = "无法写入 gamecontent.txt。", japanese = "gamecontent.txt を書き込めません。" },
     [ "hl2sb.menu.save_sent" ] = { en = "Save requested. Refresh after it completes.", schinese = "已请求保存，完成后请刷新。", japanese = "保存を要求しました。完了後に更新してください。" },
     [ "hl2sb.menu.load_sent" ] = { en = "Load requested.", schinese = "已请求读取。", japanese = "読み込みを要求しました。" },
