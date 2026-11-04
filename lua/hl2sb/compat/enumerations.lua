@@ -261,54 +261,8 @@ TRANSMIT_PVS = _E.EDICT_FLAG.PVSCHECK
 
 
 
-TYPE_NONE = -1
-TYPE_NIL = 0
-TYPE_BOOL = 1
-TYPE_LIGHTUSERDATA = 2
-TYPE_NUMBER = 3
-TYPE_STRING = 4
-TYPE_TABLE = 5
-TYPE_FUNCTION = 6
-TYPE_USERDATA = 7
-TYPE_THREAD = 8
-TYPE_ENTITY = 9
-TYPE_VECTOR = 10
-TYPE_ANGLE = 11
-TYPE_PHYSOBJ = 12
-TYPE_SAVE = 13
-TYPE_RESTORE = 14
-TYPE_DAMAGEINFO = 15
-TYPE_EFFECTDATA = 16
-TYPE_MOVEDATA = 17
-TYPE_RECIPIENTFILTER = 18
-TYPE_USERCMD = 19
-TYPE_SCRIPTEDVEHICLE = 20
-TYPE_MATERIAL = 21
-TYPE_PANEL = 22
-TYPE_PARTICLE = 23
-TYPE_PARTICLEEMITTER = 24
-TYPE_TEXTURE = 25
-TYPE_USERMSG = 26
-TYPE_CONVAR = 27
-TYPE_IMESH = 28
-TYPE_MATRIX = 29
-TYPE_SOUND = 30
-TYPE_PIXELVISHANDLE = 31
-TYPE_DLIGHT = 32
-TYPE_VIDEO = 33
-TYPE_FILE = 34
-TYPE_LOCOMOTION = 35
-TYPE_PATH = 36
-TYPE_NAVAREA = 37
-TYPE_SOUNDHANDLE = 38
-TYPE_NAVLADDER = 39
-TYPE_PARTICLESYSTEM = 40
-TYPE_PROJECTEDTEXTURE = 41
-TYPE_PHYSCOLLIDE = 42
-TYPE_SURFACEINFO = 43
-TYPE_COUNT = 44
-TYPE_COLOR = 255
 
+if _GAMEUI then
 SF_CITIZEN_AMMORESUPPLIER = 524288
 SF_CITIZEN_FOLLOW = 65536
 SF_CITIZEN_IGNORE_SEMAPHORE = 2097152
@@ -349,6 +303,7 @@ CT_DOWNTRODDEN = 1
 CT_REFUGEE = 2
 CT_REBEL = 3
 CT_UNIQUE = 4
+end
 
 TEXFILTER = {
 	NONE = 0,
@@ -403,91 +358,48 @@ EFL_HAS_PLAYER_CHILD = 16
 --- Used to determine if an entity is floating
 --- The entity is currently being lifted by a Barnacle.
 --- The entity is not affected by 'rotorwash push'--the wind-push effect caused by helicopters close to the ground in Half-Life 2.
-EFL_NO_ROTORWASH_PUSH = 2097152
 --- Avoid executing the entity's Think
-EFL_NO_THINK_FUNCTION = 4194304
 --- The entity is currently not simulating any physics.
-EFL_NO_GAME_PHYSICS_SIMULATION = 8388608
 --- The entity is about to have its untouch callback checked, e.g. when this entity stops touching another entity.
-EFL_CHECK_UNTOUCH = 16777216
 --- Entity shouldn't block NPC line-of-sight
-EFL_DONTBLOCKLOS = 33554432
 --- NPCs should not walk on this entity
-EFL_DONTWALKON = 67108864
 --- The entity shouldn't dissolve
-EFL_NO_DISSOLVE = 134217728
 --- Mega physcannon can't ragdoll these guys
-EFL_NO_MEGAPHYSCANNON_RAGDOLL = 268435456
 --- Don't adjust this entity's velocity when transitioning into water
-EFL_NO_WATER_VELOCITY_CHANGE = 536870912
 --- Physcannon can't pick these up or punt them
-EFL_NO_PHYSCANNON_INTERACTION = 1073741824
 --- Doesn't accept forces from physics damage
-EFL_NO_DAMAGE_FORCES = -2147483648
 
 ---@enum FL
 --- Is the entity on ground or not
-FL_ONGROUND = 1
 --- Is player ducking or not
-FL_DUCKING = 2
 --- Is the player in the process of ducking or standing up
-FL_ANIMDUCKING = 4
 --- The player is jumping out of water
-FL_WATERJUMP = 8
 --- This player is controlling a func_train
-FL_ONTRAIN = 16
 --- Indicates the entity is standing in rain
-FL_INRAIN = 32
 --- Completely freezes the player
 --- Bots will still be able to look around.
-FL_FROZEN = 64
 --- This player is controlling something UI related in the world, this prevents his movement, but doesn't freeze mouse movement, jumping, etc.
-FL_ATCONTROLS = 128
 --- Is this entity a player or not
-FL_CLIENT = 256
 --- Bots have this flag
-FL_FAKECLIENT = 512
 --- Is the player in water or not
-FL_INWATER = 1024
 --- This entity can fly
-FL_FLY = 2048
 --- This entity can swim
-FL_SWIM = 4096
 --- This entity is a func_conveyor
-FL_CONVEYOR = 8192
 --- NPCs have this flag (NPC: Ignore player push)
-FL_NPC = 16384
 --- Whether the player has god mode enabled
-FL_GODMODE = 32768
 --- Makes the entity invisible to AI
-FL_NOTARGET = 65536
 --- This entity can be aimed at
-FL_AIMTARGET = 131072
 --- Not all corners are valid
-FL_PARTIALGROUND = 262144
 --- It's a static prop
-FL_STATICPROP = 524288
 --- worldgraph has this ent listed as something that blocks a connection
-FL_GRAPHED = 1048576
 --- This entity is a grenade, unused
-FL_GRENADE = 2097152
 --- Changes the SV_Movestep() behavior to not do any processing
-FL_STEPMOVEMENT = 4194304
 --- Doesn't generate touch functions, calls [ENTITY:EndTouch](https://wiki.facepunch.com/gmod/ENTITY:EndTouch) when this flag gets set during a touch callback
-FL_DONTTOUCH = 8388608
 --- Base velocity has been applied this frame (used to convert base velocity into momentum)
-FL_BASEVELOCITY = 16777216
 --- This entity is a brush and part of the world
-FL_WORLDBRUSH = 33554432
 --- This entity can be seen by NPCs
-FL_OBJECT = 67108864
 --- This entity is about to get removed
-FL_KILLME = 134217728
 --- This entity is on fire
-FL_ONFIRE = 268435456
 --- The entity is currently dissolving
-FL_DISSOLVING = 536870912
 --- This entity is about to become a ragdoll
-FL_TRANSRAGDOLL = 1073741824
 --- This moving door can't be blocked by the player
-FL_UNBLOCKABLE_BY_PLAYER = -2147483648
