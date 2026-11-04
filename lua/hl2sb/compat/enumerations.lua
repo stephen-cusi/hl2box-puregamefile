@@ -1,14 +1,3 @@
-TEAM_CONNECTING           = 0
-TEAM_UNASSIGNED           = 1001
-TEAM_SPECTATOR            = 1002
-
-BOX_FRONT                 = 0
-BOX_BACK                  = 1
-BOX_RIGHT                 = 2
-BOX_LEFT                  = 3
-BOX_TOP                   = 4
-BOX_BOTTOM                = 5
-
 -- HL2SB: the engine's _E table does not publish every GMod enumeration.
 -- Pre-create the missing ones with GMod's values so this file (and the
 -- scripts that read the globals it produces) does not die on
@@ -164,11 +153,6 @@ for enumKey, enumTargetKey in pairs(enumsToMergeWithKey) do
 	end
 end
 
-if (CLIENT) then
-	MATERIAL_CULLMODE_CCW = _E.CULL_MODE.COUNTER_CLOCKWISE
-	MATERIAL_CULLMODE_CW = _E.CULL_MODE.CLOCKWISE
-end
-
 --[[
 	We don't have the Kinect SDK
 --]]
@@ -207,6 +191,7 @@ if (CLIENT or _GAMEUI) then
 	MOUSE_RIGHT = _E.MOUSE.RIGHT
 	MOUSE_MIDDLE = _E.MOUSE.MIDDLE
 
+    if ( _GAMEUI ) then
     STENCILCOMPARISONFUNCTION_NEVER = _E.STENCIL_COMPARISON_FUNCTION.NEVER
     STENCILCOMPARISONFUNCTION_LESS = _E.STENCIL_COMPARISON_FUNCTION.LESS
     STENCILCOMPARISONFUNCTION_EQUAL = _E.STENCIL_COMPARISON_FUNCTION.EQUAL
@@ -242,6 +227,7 @@ if (CLIENT or _GAMEUI) then
 	STENCIL_INVERT = _E.STENCIL_OPERATION.INVERT
 	STENCIL_INCR = _E.STENCIL_OPERATION.INCREMENT_WRAP
     STENCIL_DECR = _E.STENCIL_OPERATION.DECREMENT_WRAP
+    end
 elseif (SERVER) then
 	CONTINUOUS_USE = _E.USABILITY_TYPE.CONTINUOUS
 	ONOFF_USE = _E.USABILITY_TYPE.ON_OFF
