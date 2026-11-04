@@ -45,6 +45,8 @@ FileSystem
 			game				|all_source_engine_paths|hl2/hl2_sound_misc.vpk
 			game				|all_source_engine_paths|hl2/hl2_misc.vpk
 			game 				|all_source_engine_paths|hl2/hl2_pak.vpk
+			game                |all_source_engine_paths|lostcoast/lostcoast_pak.vpk
+			game                |all_source_engine_paths|lostcoast
 			// HL2SB: hl2mp VPKs unmounted 2026-09-28 - content now provided by the
 			// hl2 + garrysmod mounts below; the hl2mp-only MENU materials the fork's
 			// GameUI needs (materials/vgui/gfx/vgui/hl2mp_logo|solid_background|
