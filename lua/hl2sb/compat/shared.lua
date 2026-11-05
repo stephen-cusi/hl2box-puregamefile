@@ -16,4 +16,3 @@ if ( _E ~= nil ) then
 end
 
 
-include( "hl2sb/compat/enumerations.lua" )
