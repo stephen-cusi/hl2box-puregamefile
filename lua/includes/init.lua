@@ -23,4 +23,3 @@ if ( CLIENT and surface and vgui ) then
 
 end
 
-include( "hl2sb/compat/shared.lua" )
