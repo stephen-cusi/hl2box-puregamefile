@@ -3,6 +3,16 @@ local HTML = nil
 
 spawnmenu.AddCreationTab( "#spawnmenu.category.saves", function()
 
+	if ( system.IsAndroid and system.IsAndroid() ) then
+		local panel = vgui.Create( "DPanel" )
+		local label = vgui.Create( "DLabel", panel )
+		label:Dock( TOP )
+		label:SetWrap( true )
+		label:SetAutoStretchVertical( true )
+		label:SetText( "HTML pages are unavailable on Android. Use the main menu save dialog for local saves." )
+		return panel
+	end
+
 	HTML = vgui.Create( "DHTML" )
 	JS_Language( HTML )
 	JS_Workshop( HTML )

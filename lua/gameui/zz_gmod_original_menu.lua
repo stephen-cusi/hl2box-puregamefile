@@ -1,4 +1,5 @@
 if not MENU_DLL then return end
+if system and system.IsAndroid and system.IsAndroid() then return end
 
 include("includes/modules/utf8.lua")
 include("includes/modules/markup.lua")
