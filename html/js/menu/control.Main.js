@@ -85,9 +85,14 @@ function ControllerMain( $scope, $element, $rootScope )
 
 function UpdateNewsList( newslist, hide )
 {
-	scope.SetHideNewsList( hide );
-	scope.NewsList = newslist;
-	scope.CurrentNewsItem = /*scope.HideNews ? undefined :*/ newslist[ 0 ];
+	// The New Game controller shares the global scope variable.  A manifest
+	// response can arrive after navigation, when that scope is not ControllerMain.
+	if ( scope && typeof scope.SetHideNewsList === "function" )
+	{
+		scope.SetHideNewsList( hide );
+		scope.NewsList = newslist;
+		scope.CurrentNewsItem = /*scope.HideNews ? undefined :*/ newslist[ 0 ];
+	}
 
 	if ( rootScope )
 	{
