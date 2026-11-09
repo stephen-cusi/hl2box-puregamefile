@@ -345,27 +345,27 @@ WorkshopFiles.prototype.RefreshDimensions = function()
 	if ( iconswide > 6 ) iconswide = 6;
 	if ( iconstall > 4 ) iconstall = 4;
 
-	self.Scope.PerPage = iconswide * iconstall;
+	this.Scope.PerPage = iconswide * iconstall;
 
-	self.Scope.IconWidth	= Math.floor( w / iconswide ) - 26;
-	self.Scope.IconHeight	= Math.floor( h / iconstall ) - 26;
-	self.Scope.IconMax		= Math.max( self.Scope.IconWidth, self.Scope.IconHeight ) + 1;
+	this.Scope.IconWidth	= Math.floor( w / iconswide ) - 26;
+	this.Scope.IconHeight	= Math.floor( h / iconstall ) - 26;
+	this.Scope.IconMax		= Math.max( this.Scope.IconWidth, this.Scope.IconHeight ) + 1;
 }
 
 WorkshopFiles.prototype.UpdatePageNav = function()
 {
-	self.Scope.Page = Math.floor( self.Scope.Offset / self.Scope.PerPage ) + 1;
+	this.Scope.Page = Math.floor( this.Scope.Offset / this.Scope.PerPage ) + 1;
 
 	var maxPages = 32;
-	var realMaxPages = Math.ceil( self.Scope.TotalResults / self.Scope.PerPage )
-	self.Scope.NumPages = Math.min( realMaxPages, maxPages );
+	var realMaxPages = Math.ceil( this.Scope.TotalResults / this.Scope.PerPage )
+	this.Scope.NumPages = Math.min( realMaxPages, maxPages );
 
-	var pageOfPages = Math.floor( ( self.Scope.Page - 1 ) / ( maxPages ) );
+	var pageOfPages = Math.floor( ( this.Scope.Page - 1 ) / ( maxPages ) );
 	var pageOffset = pageOfPages * maxPages;
 
-	self.Scope.Pages = [];
+	this.Scope.Pages = [];
 	for ( var i = pageOffset + 1; i < Math.min( realMaxPages + 1, pageOffset + 1 + maxPages ); i++ )
 	{
-		self.Scope.Pages.push( i );
+		this.Scope.Pages.push( i );
 	}
 }

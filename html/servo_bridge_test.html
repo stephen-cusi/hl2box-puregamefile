@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>hl2sb servo async bridge test</title>
+<style>
+body { font: 14px/1.5 monospace; background: #101418; color: #c8d0d8; padding: 16px; }
+h3 { color: #7ec7ff; margin: 0 0 8px; }
+#out { white-space: pre-wrap; }
+.pass { color: #6fdc8c; }
+</style>
+</head>
+<body>
+<h3>servo async bridge test</h3>
+<pre id="out">running...</pre>
+<script>
+var out = [];
+var failed = 0;
+var settled = 0;
+var total = 0;
+
+function report(name, ok, detail) {
+	out.push((ok ? "PASS " : "FAIL ") + name + (detail !== undefined ? "  [" + detail + "]" : ""));
+	if (!ok) failed++;
+	var el = document.getElementById("out");
+	el.textContent = out.join("\n");
+}
+
+function settle(ok) {
+	settled++;
+	report("settled " + settled + "/" + total, true);
+	if (settled === total) {
+		report("RESULT", failed === 0, failed + " failed of " + total);
+		if (window.hl2sb_test) hl2sb_test.done(failed, JSON.stringify(out));
+	}
+}
+
+function run() {
+	if (!window.hl2sb_test) {
+		document.getElementById("out").textContent = "FAIL bridge object not registered (page loaded before AddFunction?)";
+		return;
+	}
+
+	// 1. Lua multret -> separate JS callback arguments, mixed types.
+	total++;
+	hl2sb_test.echo("s", 42, true, function(a, b, c) {
+		var ok = (a === "r1" && b === 2 && c && c.a === true);
+		report("multret", ok, JSON.stringify([a, b, c]));
+		settle(ok);
+	});
+
+	// 2. Call without callback: Lua side must still run (verified by the
+	// probe below; one settle covers the note+probe pair).
+	total++;
+	hl2sb_test.note("nocallback-mark", function() {});
+
+	// 3. The probe reads state written by the no-callback call above.
+	hl2sb_test.probe(function(flag) {
+		var ok = (flag === "nocallback-mark");
+		report("nocallback", ok, JSON.stringify(flag));
+		settle(ok);
+	});
+
+	// 4. Argument marshaling: object/array/number/string/bool survive the trip.
+	total++;
+	hl2sb_test.roundtrip({n: 1, s: "x", b: false, list: [1, 2, 3]}, function(back) {
+		var ok = back && back.n === 1 && back.s === "x" && back.b === false &&
+			back.list && back.list[0] === 1 && back.list[2] === 3;
+		report("args", ok, JSON.stringify(back));
+		settle(ok);
+	});
+
+	// 5. Rapid fire: 25 concurrent calls, every callback must answer.
+	total++;
+	var rapidFailed = 0, rapidDone = 0;
+	for (var i = 0; i < 25; ++i) {
+		(function(i) {
+			hl2sb_test.roundtrip({i: i, tag: "rapid"}, function(back) {
+				rapidDone++;
+				if (!back || back.tag !== "rapid" || back.i !== i) rapidFailed++;
+				if (rapidDone === 25) {
+					report("rapid25", rapidFailed === 0, rapidFailed + " bad of 25");
+					settle(rapidFailed === 0);
+				}
+			});
+		})(i);
+	}
+
+	// 6. Latency probe: 10 sequential calls, wall clock must stay small.
+	total++;
+	var t0 = Date.now(), seqDone = 0;
+	function seq() {
+		if (seqDone === 10) {
+			var ms = Date.now() - t0;
+			report("latency10", ms < 2000, ms + " ms total");
+			settle(ms < 2000);
+			return;
+		}
+		seqDone++;
+		hl2sb_test.echo("seq", seqDone, function() { seq(); });
+	}
+	seq();
+}
+
+if (document.readyState === "complete") setTimeout(run, 0);
+else window.addEventListener("load", function() { setTimeout(run, 0); });
+</script>
+</body>
+</html>

@@ -13,6 +13,15 @@
 module( "language", package.seeall )
 
 local Phrases = {}
+local RefreshSelectedLanguage
+
+local function SelectedLanguage()
+	local cvar = GetConVar and GetConVar( "gmod_language" )
+	local code = cvar and cvar:GetString() or "en"
+	return code != "" and string.lower( code ) or "en"
+end
+
+local LANGUAGE_ALIASES = { en = "english", ["zh-cn"] = "schinese", ["zh-tw"] = "tchinese", fr = "french", de = "german", ru = "russian", ja = "japanese", ko = "korean" }
 
 local function StripHash( key )
 	if ( type( key ) == "string" and key:sub( 1, 1 ) == "#" ) then
@@ -39,9 +48,8 @@ function Add( key, value )
 
 	if ( ( CLIENT or MENU_DLL ) and Localizations and Localizations.AddString ) then
 		local entry = Phrases[ key ]
-		local cvar = GetConVar and GetConVar( "cl_language" )
-		local code = cvar and cvar:GetString() or "english"
-		local phrase = entry[ code ] or entry.en or select( 2, next( entry ) )
+		local code = SelectedLanguage()
+		local phrase = entry[ code ] or entry[ LANGUAGE_ALIASES[ code ] ] or entry.en or select( 2, next( entry ) )
 		if ( isstring( phrase ) ) then Localizations.AddString( key, phrase ) end
 	end
 end
@@ -63,37 +71,18 @@ end
 -------------------------------------------------------------------------------
 function GetPhrase( key )
 	if ( type( key ) ~= "string" ) then return "" end
+	if ( RefreshSelectedLanguage ) then RefreshSelectedLanguage() end
 
 	local entry = Phrases[ StripHash( key ) ]
 	if ( entry == nil ) then
 		return Localizations and Localizations.Find and Localizations.Find( key ) or key
 	end
 
-	-- Prefer the map language, then English, then whatever exists.
-	--
-	-- The engine has no Lua GetUILanguage binding; cl_language is the convar
-	-- the engine itself fills from Steam ("english", "schinese", "russian",
-	-- ...).  Falls back to engine.GetUILanguage for when that shows up.
-	local lang = nil
-	if ( GetConVar ~= nil ) then
-		local ok, cvar = pcall( GetConVar, "cl_language" )
-		if ( ok and cvar ~= nil ) then
-			local ok2, value = pcall( cvar.GetString, cvar )
-			if ( ok2 and value ~= nil and value != "" ) then
-				lang = value
-			end
-		end
-	end
-	if ( lang == nil and engine ~= nil and engine.GetUILanguage ~= nil ) then
-		local ok, value = pcall( engine.GetUILanguage )
-		if ( ok and value ~= nil ) then
-			lang = value
-		end
-	end
-
-	if ( lang ~= nil and entry[ lang ] ~= nil ) then
-		return entry[ lang ]
-	end
+	-- Prefer the selected language, then English.
+	local lang = SelectedLanguage()
+	if ( entry[ lang ] ~= nil ) then return entry[ lang ] end
+	local alias = LANGUAGE_ALIASES[ lang ]
+	if ( alias and entry[ alias ] ~= nil ) then return entry[ alias ] end
 
 	return entry.en or select( 2, next( entry ) ) or key
 end
@@ -346,17 +335,7 @@ local PROPERTY_FILES = {
 }
 
 local function PropertiesLanguageCode()
-	local code = "english"
-	if ( GetConVar ~= nil ) then
-		local ok, cvar = pcall( GetConVar, "cl_language" )
-		if ( ok and cvar ~= nil ) then
-			local ok2, value = pcall( cvar.GetString, cvar )
-			if ( ok2 and value ~= nil and value != "" ) then
-				code = value
-			end
-		end
-	end
-	return code
+	return SelectedLanguage()
 end
 
 local function UnescapePropertyValue( value )
@@ -416,7 +395,7 @@ local function LoadGModProperties()
 		end
 
 		local code = PropertiesLanguageCode()
-		local dir = LANGUAGE_DIRS[ code ]
+		local dir = LANGUAGE_DIRS[ code ] or code
 		if ( dir ~= nil and dir != "en" ) then
 			for _, name in ipairs( PROPERTY_FILES ) do
 				LoadPropertiesFile( "resource/localization/" .. dir .. "/" .. name, code )
@@ -425,4 +404,26 @@ local function LoadGModProperties()
 	end )
 end
 
-LoadGModProperties()
+local loadedLanguage
+RefreshSelectedLanguage = function()
+	local code = SelectedLanguage()
+	if ( code == loadedLanguage ) then return false end
+	loadedLanguage = code
+	LoadGModProperties()
+	return true
+end
+
+RefreshSelectedLanguage()
+
+if ( MENU_DLL and hook ) then
+	local notifiedLanguage = loadedLanguage
+	hook.Add( "Think", "HL2SBLanguageChanged", function()
+		local code = SelectedLanguage()
+		if ( code == notifiedLanguage ) then return end
+		RefreshSelectedLanguage()
+		if ( isfunction( LanguageChanged ) and IsValid( pnlMainMenu ) ) then
+			notifiedLanguage = code
+			LanguageChanged( code )
+		end
+	end )
+end
