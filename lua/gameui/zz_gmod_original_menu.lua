@@ -3,7 +3,7 @@ if system and system.IsAndroid and system.IsAndroid() then return end
 
 include("includes/modules/utf8.lua")
 include("includes/modules/markup.lua")
-include("gmod_original/includes/util/workshop_files.lua")
+include("includes/util/workshop_files.lua")
 include("gmod_original/includes/util/javascript_util.lua")
 include("gmod_original/menu/menu.lua")
 

@@ -132,6 +132,7 @@ function ControllerAddons( $scope, $element, $rootScope, $location )
 	}
 	$scope.IsSubscribed = function( file )
 	{
+		if ( file.extra && file.extra.workshop_archived ) return false;
 		return subscriptions.Contains( file.id );
 	}
 	$scope.IsSubscribedID = function( fileID )
@@ -203,8 +204,9 @@ function ControllerAddons( $scope, $element, $rootScope, $location )
 
 		for ( var k in $scope.Files )
 		{
-			if ( parseInt( $scope.Files[ k ].id ) < 1 ) continue;
-			$scope.SelectedItems[ $scope.Files[ k ].id ] = true;
+			var file = $scope.Files[ k ];
+			if ( ( file.extra && file.extra.workshop_archived ) || parseInt( file.id ) < 1 ) continue;
+			$scope.SelectedItems[ file.id ] = true;
 		}
 	}
 	$scope.SelectAll = function()
@@ -228,6 +230,7 @@ function ControllerAddons( $scope, $element, $rootScope, $location )
 	}
 	$scope.ToggleSelect = function( file, event )
 	{
+		if ( file.extra && file.extra.workshop_archived ) return;
 		var en = event.target.nodeName.toLowerCase();
 		if ( en != "controls" && en != "description" && en != "workshopicon" ) return;
 
@@ -481,6 +484,7 @@ function ControllerAddons( $scope, $element, $rootScope, $location )
 
 	$scope.GetAddonClasses = function( file )
 	{
+		if ( file.extra && file.extra.workshop_archived ) return "floating";
 		var classes = [];
 		if ( $scope.IsSubscribed( file ) )
 		{
@@ -493,11 +497,21 @@ function ControllerAddons( $scope, $element, $rootScope, $location )
 		return classes.join( " " );
 	}
 
+	$scope.OpenAddonTitle = function( file )
+	{
+		if ( file.extra && file.extra.workshop_archived )
+			lua.Run( "HL2SBOpenStoredWorkshopPage( %s )", String( file.id ) );
+		else
+			$scope.OpenWorkshopFile( file.id );
+	}
+
 	$scope.GetAddonDescription = function( file )
 	{
 		var invalid = subscriptions.GetInvalidReason( file.id )
 		if ( invalid ) return invalid;
 
+		if ( file.workshopInfo && file.workshopInfo.description ) return file.workshopInfo.description;
+		if ( file.extra && file.extra.workshop_archived ) return "";
 		if ( !file.info ) return "ERROR?";
 
 		return file.info.description

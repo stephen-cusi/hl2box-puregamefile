@@ -266,6 +266,19 @@ WorkshopFiles.prototype.ReceiveFileInfo = function( id, data )
 		this.Changed();
 	}
 }
+
+WorkshopFiles.prototype.ReceiveStoredWorkshopInfo = function( data )
+{
+	for ( var k in this.Scope.Files )
+	{
+		var entry = this.Scope.Files[ k ];
+		if ( entry.id !== data.id || !entry.extra || !entry.extra.local_workshop ) continue;
+
+		entry.workshopInfo = data.info;
+		this.Changed();
+	}
+}
+
 WorkshopFiles.prototype.ReceiveFileUserInfo = function( id, data )
 {
 	for ( var k in this.Scope.Files )

@@ -2,11 +2,55 @@
 local PreviewCache = {}
 local InfoCache = {}
 local ListCache = {}
+local WorkshopNames = {}
+
+local function CleanWorkshopDescription( description )
+	description = string.gsub( description, "%[img%]([^%]]*)%[/img%]", "" )
+	description = string.gsub( description, "%[([^%]]*)%]", "" )
+	return string.Trim( description )
+end
+
+local function AddStoredWorkshopItems( subscriptions )
+	local existing = {}
+	for _, item in ipairs( subscriptions ) do
+		if ( item.wsid ~= "0" ) then existing[ item.wsid ] = item end
+	end
+
+	for _, entry in ipairs( engine.GetLocalWorkshopContent() ) do
+		local item = existing[ entry.wsid ]
+		if ( not item ) then
+			item = entry
+			item.workshop_archived = true
+			subscriptions[ #subscriptions + 1 ] = item
+			existing[ entry.wsid ] = item
+		end
+
+		item.local_workshop = true
+		local details = WorkshopNames[ entry.wsid ]
+		if ( details ) then
+			item.title = details.title
+			if ( details.tags and details.tags ~= "" ) then item.tags = details.tags end
+		end
+	end
+end
+
+if ( MENU_DLL ) then
+	function HL2SBOpenStoredWorkshopPage( id )
+		if ( type( id ) ~= "string" or not id:match( "^[1-9][0-9]*$" ) or #id > 20 or
+			( #id == 20 and id > "18446744073709551615" ) ) then return end
+		if ( isfunction( steamworks.ViewFile ) ) then
+			steamworks.ViewFile( id )
+		else
+			gui.OpenURL( "https://steamcommunity.com/sharedfiles/filedetails/?id=" .. id )
+		end
+	end
+end
 
 function WorkshopFileBase( namespace, requiredtags )
 
 	local ret = {}
 	ret.HTML = nil
+	local storedWorkshop = MENU_DLL and namespace == "addon" and engine.GetLocalWorkshopContent and HL2SBWorkshopInfo
 
 	function ret:Fetch( type, offset, perpage, extratags, searchText, filter, sort )
 
@@ -53,6 +97,7 @@ function WorkshopFileBase( namespace, requiredtags )
 			subscriptions = engine.GetUserContent()
 		else
 			subscriptions = engine.GetAddons()
+			if ( storedWorkshop ) then AddStoredWorkshopItems( subscriptions ) end
 		end
 
 		for id, e in pairs( subscriptions ) do
@@ -80,6 +125,8 @@ function WorkshopFileBase( namespace, requiredtags )
 		-- First build a list of items that fit our search terms
 		local searchedItems = {}
 		local localFileHack = -1
+		local query = searchText:lower()
+		local hasQuery = searchText:Trim() ~= ""
 		for id, item in pairs( subscriptions ) do
 
 			-- This is a dirty hack for local addons, ideally should be done in engine, or not use solely IDs to identify addons
@@ -91,15 +138,17 @@ function WorkshopFileBase( namespace, requiredtags )
 			-- Search for tags
 			local found = true
 			for _, tag in pairs( tags ) do
-				if ( !item.tags:lower():find( tag, 1, true ) ) then found = false end
+				if ( not ( item.local_workshop and tag:lower() == "addon" ) and !item.tags:lower():find( tag, 1, true ) ) then found = false end
 			end
 			if ( !found ) then continue end
 
 			-- Search for searchText
-			if ( searchText:Trim() != "" && !item.title:lower():find( searchText:lower(), 1, true ) ) then
+			if ( hasQuery and not item.title:lower():find( query, 1, true ) and
+				not ( item.local_workshop and item.wsid:find( query, 1, true ) ) ) then
 				continue
 			end
 
+			if ( item.workshop_archived and filter and filter ~= "" ) then continue end
 			if ( filter && filter == "enabledonly" && !steamworks.ShouldMountAddon( item.wsid ) ) then
 				continue
 			end
@@ -122,8 +171,10 @@ function WorkshopFileBase( namespace, requiredtags )
 		-- Add the list of all items for "select all" in the UI
 		local i = 0
 		for id, item in ipairs( searchedItems ) do
-			data.otherresults[ i ] = item.wsid
-			i = i + 1
+			if ( not item.workshop_archived ) then
+				data.otherresults[ i ] = item.wsid
+				i = i + 1
+			end
 		end
 
 		-- Add the actual results for the requested range
@@ -132,8 +183,9 @@ function WorkshopFileBase( namespace, requiredtags )
 
 			if ( searchedItems[ offset + p + 1 ] ) then
 
-				local res = table.insert( data.results, searchedItems[ offset + p + 1 ].wsid )
-				data.extraresults[ res ] = searchedItems[ offset + p + 1 ]
+				local item = searchedItems[ offset + p + 1 ]
+				table.insert( data.results, item.wsid )
+				data.extraresults[ #data.results ] = item
 
 			end
 
@@ -141,6 +193,7 @@ function WorkshopFileBase( namespace, requiredtags )
 
 		end
 
+		if ( storedWorkshop ) then data.numresults = #data.results end
 		self:FillFileInfo( data, isUGC )
 
 	end
@@ -207,6 +260,36 @@ function WorkshopFileBase( namespace, requiredtags )
 		--
 		for k, v in pairs( results.results ) do
 
+			local extra = results.extraresults and results.extraresults[ k ]
+			if ( storedWorkshop and extra and extra.local_workshop ) then
+				local html = self.HTML
+				local wsid = v
+				local function receive( details )
+					if ( not details and not extra.workshop_archived ) then return end
+					local info = { title = extra.title }
+					if ( details ) then
+						if ( type( details.title ) == "string" and details.title ~= "" ) then
+							info.title = details.title
+						end
+						if ( type( details.description ) == "string" ) then
+							info.description = CleanWorkshopDescription( details.description )
+						end
+						WorkshopNames[ wsid ] = { title = info.title, tags = type( details.tags ) == "string" and details.tags or nil }
+						local ext = type( details.preview ) == "string" and
+							details.preview:match( "^%.cache/workshop/" .. wsid .. "/preview%.(%a+)$" )
+						if ( ext == "jpg" or ext == "png" ) then
+							info.preview = details.preview
+						end
+					end
+					if ( self.HTML ~= html or not IsValid( html ) ) then return end
+					local payload = util.TableToJSON( { id = wsid, info = info }, false )
+					html:Call( namespace .. ".ReceiveStoredWorkshopInfo( " .. payload .. " )" )
+				end
+
+				HL2SBWorkshopInfo( wsid, receive )
+				if ( extra.workshop_archived ) then continue end
+			end
+
 			v = v:JavascriptSafe()
 
 			--
@@ -270,9 +353,7 @@ function WorkshopFileBase( namespace, requiredtags )
 					end
 
 					if ( result.description ) then
-						result.description = string.gsub( result.description, "%[img%]([^%]]*)%[/img%]", "" ) -- Gotta remove inner content of img tags
-						result.description = string.gsub( result.description, "%[([^%]]*)%]", "" )
-						result.description = string.Trim( result.description )
+						result.description = CleanWorkshopDescription( result.description )
 					end
 
 					if ( result.owner && ( !result.ownername || result.ownername == "" || result.ownername == "[unknown]" ) ) then
