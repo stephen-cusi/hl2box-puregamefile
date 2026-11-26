@@ -15,6 +15,7 @@
 "v"				"noclip"
 "'"				"+moveup"
 "c"				"+menu_context"
+"b"				"+zoom"
 "/"				"+movedown"
 "PGUP"			"+lookup"
 "PGDN"			"+lookdown"
