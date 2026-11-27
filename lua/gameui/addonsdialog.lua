@@ -303,6 +303,24 @@ local function ListAddons()
         end
     end
 
+    if ( engine.GetLocalWorkshopContent ) then
+        local listed = {}
+        for _, entry in ipairs( out ) do listed[ entry.key ] = true end
+
+        -- The mount pass treats a linked Workshop item as installed.
+        -- Numeric IDs are also the keys in addons_disabled.txt.
+        for _, item in ipairs( engine.GetLocalWorkshopContent() ) do
+            local id = item.wsid
+            if ( item.installed and not listed[ id ] ) then
+                out[ #out + 1 ] = {
+                    name = id, key = id, isGma = true, path = item.file,
+                    title = item.title, author = item.author, desc = item.description,
+                }
+                listed[ id ] = true
+            end
+        end
+    end
+
     table.sort( out, function( a, b ) return a.key < b.key end )
     return out
 end
@@ -725,7 +743,7 @@ local function OpenPlain()
         cardMeta:SetText( table.concat( bits, "  ·  " ) )
 
         cardAuthor:SetText( ( entry.author and entry.author != "" ) and ( "作者: " .. entry.author ) or "" )
-        cardPath:SetText( "addons/" .. entry.name )
+        cardPath:SetText( entry.path or ( "addons/" .. entry.name ) )
         cardDesc:SetText( TrimDesc( entry.desc ) or STR.NoDesc )
     end
 
